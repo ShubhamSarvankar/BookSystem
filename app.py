@@ -303,5 +303,63 @@ def delete_transaction(id):
     else:
         return jsonify({'message': 'Transaction not found'}), 404
 
+# Fetch all products
+@app.route('/products', methods=['GET'])
+def get_products():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM Products")
+        rows = cur.fetchall()
+        cur.close()
+        return jsonify(rows)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# Add a new product
+@app.route('/products', methods=['POST'])
+def add_product():
+    data = request.get_json()
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            INSERT INTO Products (product_name, price, inventory, category)
+            VALUES (%s, %s, %s, %s)
+        """, (data['product_name'], data['price'], data['inventory'], data['category']))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify({"message": "Product added successfully!"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# Update a product
+@app.route('/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    data = request.get_json()
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            UPDATE Products
+            SET product_name = %s, price = %s, inventory = %s, category = %s
+            WHERE product_id = %s
+        """, (data['product_name'], data['price'], data['inventory'], data['category'], product_id))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify({"message": "Product updated successfully!"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# Delete a product
+@app.route('/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("DELETE FROM Products WHERE product_id = %s", (product_id,))
+        mysql.connection.commit()
+        cur.close()
+        return jsonify({"message": "Product deleted successfully!"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
 if __name__ == '__main__':
     app.run(debug=True)
