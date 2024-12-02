@@ -4,12 +4,12 @@ import re
 
 app = Flask(__name__)
 
-# MySQL Configuration
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'shubham'  # Replace with your MySQL username
-app.config['MYSQL_PASSWORD'] = 'shubhamsarvankar13'  # Replace with your MySQL password
-app.config['MYSQL_DB'] = 'ecommerce'  # Replace with your database name
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+# Database configuration
+app.config['MYSQL_HOST'] = 'sql5.freemysqlhosting.net'
+app.config['MYSQL_USER'] = 'sql5749107'
+app.config['MYSQL_PASSWORD'] = 'e1Hs4PCSR6'
+app.config['MYSQL_DB'] = 'sql5749107'
+app.config['MYSQL_PORT'] = 3306
 
 mysql = MySQL(app)
 
@@ -32,8 +32,49 @@ def not_found_error(error):
 
 # Test Route
 @app.route('/')
-def home():
-    return "Flask app is working! Go to /customers to test CRUD operations."
+def index():
+    return "Flask app connected to FreeMySQLHosting.net database!"
+
+@app.route('/init_db', methods=['GET'])
+def init_db():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Customers (
+                customer_id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_name VARCHAR(50) NOT NULL,
+                email VARCHAR(100) NOT NULL UNIQUE,
+                phone VARCHAR(15),
+                address VARCHAR(255),
+                role_id INT DEFAULT 1,
+                status BOOLEAN DEFAULT TRUE
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Products (
+                product_id INT AUTO_INCREMENT PRIMARY KEY,
+                product_name VARCHAR(100) NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                inventory INT NOT NULL,
+                category VARCHAR(50),
+                popularity INT DEFAULT 0
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Orders (
+                order_id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT NOT NULL,
+                order_date DATE NOT NULL,
+                total_amount DECIMAL(10, 2) NOT NULL,
+                FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+            )
+        """)
+        mysql.connection.commit()
+        cur.close()
+        return "Database initialized successfully!"
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 # Create Customer
 @app.route('/customers', methods=['POST'])
