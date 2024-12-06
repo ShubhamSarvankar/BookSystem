@@ -330,19 +330,27 @@ def checkout():
 
         # Fetch cart items for the logged-in user
         cur.execute("""
-            SELECT b.book_id, b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
+            SELECT b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
             FROM Cart c
             JOIN Book b ON c.book_id = b.book_id
             WHERE c.customer_id = %s
         """, (user_id,))
-        cart_items = cur.fetchall()
+        cart_items = [
+            {
+                "title": item[0],
+                "quantity": item[1],
+                "price": item[2],
+                "subtotal": item[3]
+            }
+            for item in cur.fetchall()
+        ]
 
         if not cart_items:
             cur.close()
             return render_template('checkout.html', error="Your cart is empty!")
 
         # Calculate total price
-        total = sum(item[4] for item in cart_items)
+        total = sum(item['subtotal'] for item in cart_items)
 
         # Fetch addresses for the logged-in user
         cur.execute("""
@@ -350,7 +358,16 @@ def checkout():
             FROM Address
             WHERE customer_id = %s
         """, (user_id,))
-        addresses = cur.fetchall()
+        addresses = [
+            {
+                "address_id": address[0],
+                "street": address[1],
+                "city": address[2],
+                "state": address[3],
+                "zip": address[4]
+            }
+            for address in cur.fetchall()
+        ]
 
         cur.close()
 
@@ -358,7 +375,6 @@ def checkout():
     except Exception as e:
         print("Error in checkout:", e)
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/complete_checkout', methods=['POST'])
 def complete_checkout():

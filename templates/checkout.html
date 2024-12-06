@@ -80,7 +80,7 @@
         <form action="/complete_checkout" method="POST" class="mt-4">
             <div class="mb-3">
                 <label for="address" class="form-label">Select Address</label>
-                <select name="address_id" id="address" class="form-select">
+                <select name="address_id" id="address" class="form-select" required>
                     {% for address in addresses %}
                     <option value="{{ address.address_id }}">
                         {{ address.street }}, {{ address.city }}, {{ address.state }} - {{ address.zip }}
