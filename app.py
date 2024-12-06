@@ -84,18 +84,25 @@ def home():
 def search():
     query = request.args.get('query', '').strip()
     if query:
-        cursor = mysql.connection.cursor()
-        search_query = """
-            SELECT * FROM Book 
-            WHERE title LIKE %s OR author LIKE %s
-        """
-        like_query = f"%{query}%"
-        cursor.execute(search_query, (like_query, like_query))
-        books = cursor.fetchall()
-        cursor.close()
+        try:
+            cur = mysql.connection.cursor()
+            search_query = """
+                SELECT book_id, title, author, genre, price 
+                FROM Book 
+                WHERE title LIKE %s OR author LIKE %s
+            """
+            like_query = f"%{query}%"
+            cur.execute(search_query, (like_query, like_query))
+            books = cur.fetchall()  # Fetch matching books
+            cur.close()
 
-        return render_template('products.html', books=books, query=query)
+            # Pass books and query to the template
+            return render_template('products.html', books=books, query=query)
+        except Exception as e:
+            print("Search Error:", e)
+            return jsonify({"error": str(e)}), 500
     else:
+        # If no query, return an empty result
         return render_template('products.html', books=[], query=query)
 
 # Book Catalog
