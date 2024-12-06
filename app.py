@@ -154,7 +154,7 @@ def book_details(book_id):
                 ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
             """, (user_id, book_id, quantity))
             mysql.connection.commit()
-            flash("Item added to cart!", "success")
+            flash("Book successfully added to cart!", "success")  # Add flash message
 
         cur.close()
 
@@ -291,6 +291,32 @@ def cart():
     except Exception as e:
         print("Error:", e)
         return jsonify({"error": str(e)})
+
+@app.route('/remove_from_cart', methods=['POST'])
+def remove_from_cart():
+    if 'user_id' not in session:
+        flash("Please log in to manage your cart.", "warning")
+        return redirect(url_for('login'))
+
+    try:
+        user_id = session['user_id']
+        book_id = request.form.get('book_id')
+
+        cur = mysql.connection.cursor()
+        delete_query = """
+            DELETE FROM Cart
+            WHERE customer_id = %s AND book_id = %s
+        """
+        cur.execute(delete_query, (user_id, book_id))
+        mysql.connection.commit()
+        cur.close()
+
+        flash("Item removed from cart.", "success")
+        return redirect(url_for('cart'))
+    except Exception as e:
+        print(f"Error removing item from cart: {e}")
+        flash("An error occurred while removing the item. Please try again.", "danger")
+        return redirect(url_for('cart'))
 
 @app.route('/checkout')
 def checkout():

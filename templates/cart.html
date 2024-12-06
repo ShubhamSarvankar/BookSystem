@@ -3,52 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cart</title>
+    <title>Your Cart - Book Haven</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <a href="/" class="navbar-brand">Book Haven</a>
-        </nav>
-    </header>
-
-    <main class="container">
-        <h1>Your Cart</h1>
-        {% if cart_items %}
-        <table class="cart-table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in cart_items %}
-                <tr>
-                    <td>{{ item.title }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>${{ item.price }}</td>
-                    <td>${{ item.subtotal }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <div class="cart-total">
-            <strong>Total:</strong> ${{ total }}
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">Book Haven</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/catalog">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
+                    {% if session['user_id'] %}
+                        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
-        <div class="cart-actions">
-            <a href="/checkout" class="btn btn-primary">Proceed to Checkout</a>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <h1 class="mb-4">Your Cart</h1>
+        {% if cart_items %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>${{ item.price }}</td>
+                        <td>${{ item.subtotal }}</td>
+                        <td>
+                            <form action="/remove_from_cart" method="post" class="d-inline">
+                                <input type="hidden" name="book_id" value="{{ item.book_id }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                            </form>                            
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div>
+                <h4>Total: <span class="text-success">${{ total }}</span></h4>
+            </div>
+            <a href="/checkout" class="btn btn-primary btn-lg">Proceed to Checkout</a>
         </div>
         {% else %}
-        <p>Your cart is empty. Start shopping!</p>
+        <div class="alert alert-warning mt-5" role="alert">
+            Your cart is empty. Start shopping! <a href="/catalog" class="alert-link">Browse books</a>.
+        </div>
         {% endif %}
-    </main>
+    </div>
 
-    <footer>
-        <p>&copy; 2024 Book Haven. All rights reserved.</p>
+    <!-- Footer -->
+    <footer class="bg-light text-center py-4 mt-5">
+        <p class="mb-0">&copy; 2024 Book Haven. All rights reserved.</p>
     </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
