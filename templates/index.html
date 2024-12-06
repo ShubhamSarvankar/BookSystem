@@ -53,13 +53,12 @@
                     <div class="col-md-4">
                         <div class="card book-card">
                             <div class="placeholder-img">
-                                <img 
-                                    src="{{ book.cover_image if book.cover_image else url_for('static', filename='images/default_book_cover.jpg') }}" 
-                                    class="card-img-top" 
-                                    alt="{{ book.title }}"
-                                >
-                            </div>
-                            <div class="card-body">
+                                {% if book.cover_image %}
+                                    <img src="{{ book.cover_image }}" class="card-img-top" alt="{{ book.title }}">
+                                {% else %}
+                                    <div class="grey-square"></div>
+                                {% endif %}
+                            </div>                                                        <div class="card-body">
                                 <h5 class="card-title">{{ book.title }}</h5>
                                 <p class="card-text">By {{ book.author }}</p>
                                 <p class="card-text text-primary fw-bold">${{ book.price }}</p>
