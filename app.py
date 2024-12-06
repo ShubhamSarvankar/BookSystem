@@ -441,7 +441,6 @@ def complete_checkout():
         print("Error in complete_checkout:", e)
         return redirect(url_for('checkout'))
 
-
 @app.route('/order_confirmation/<int:order_id>')
 def order_confirmation(order_id):
     if 'user_id' not in session:
@@ -455,12 +454,13 @@ def order_confirmation(order_id):
             JOIN Book b ON oi.book_id = b.book_id
             WHERE o.order_id = %s
         """, (order_id,))
-        order_details = cur.fetchall()
+        order_details = cur.fetchall()  # Ensure `fetchall()` is called
         cur.close()
 
         if not order_details:
             return "Order not found", 404
 
+        # Format the order details
         formatted_details = {
             "order_id": order_details[0][0],
             "order_date": order_details[0][1],
