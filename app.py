@@ -330,7 +330,7 @@ def checkout():
 
         # Fetch cart items for the logged-in user
         cur.execute("""
-            SELECT b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
+            SELECT b.book_id, b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
             FROM Cart c
             JOIN Book b ON c.book_id = b.book_id
             WHERE c.customer_id = %s
@@ -342,16 +342,7 @@ def checkout():
             return render_template('checkout.html', error="Your cart is empty!")
 
         # Calculate total price
-        total = sum(item[3] for item in cart_items)
-        formatted_items = [
-            {
-                "title": item[0],
-                "quantity": item[1],
-                "price": item[2],
-                "subtotal": item[3]
-            }
-            for item in cart_items
-        ]
+        total = sum(item[4] for item in cart_items)
 
         # Fetch addresses for the logged-in user
         cur.execute("""
@@ -361,40 +352,31 @@ def checkout():
         """, (user_id,))
         addresses = cur.fetchall()
 
-        formatted_addresses = [
-            {
-                "address_id": address[0],
-                "street": address[1],
-                "city": address[2],
-                "state": address[3],
-                "zip": address[4]
-            }
-            for address in addresses
-        ]
-
         cur.close()
 
-        return render_template('checkout.html', cart_items=formatted_items, total=total, addresses=formatted_addresses)
+        return render_template('checkout.html', cart_items=cart_items, total=total, addresses=addresses)
     except Exception as e:
-        print("Error:", e)
-        return jsonify({"error": str(e)})
+        print("Error in checkout:", e)
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/complete_checkout', methods=['POST'])
 def complete_checkout():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    address_id = request.form.get('address_id')
-    card_details = request.form.get('card_details')
 
     try:
+        user_id = session['user_id']
+        address_id = request.form.get('address_id')
+        card_details = request.form.get('card_details')  # Add additional fields if necessary
+
         # Retrieve cart items
         cur = mysql.connection.cursor()
         cur.execute("""
-            SELECT book_id, quantity
-            FROM Cart
-            WHERE customer_id = %s
+            SELECT book_id, quantity, price
+            FROM Cart c
+            JOIN Book b ON c.book_id = b.book_id
+            WHERE c.customer_id = %s
         """, (user_id,))
         cart_items = cur.fetchall()
 
@@ -402,35 +384,28 @@ def complete_checkout():
             flash("Your cart is empty. Please add items to proceed.", "warning")
             return redirect(url_for('checkout'))
 
+        # Calculate total amount
+        total_amount = sum(item[1] * item[2] for item in cart_items)
+
         # Insert order into Orders table
         cur.execute("""
             INSERT INTO `Order` (customer_id, order_date, order_status, total_amount)
-            VALUES (%s, NOW(), 'Completed', 
-                (SELECT SUM(c.quantity * b.price) 
-                 FROM Cart c 
-                 JOIN Book b ON c.book_id = b.book_id 
-                 WHERE c.customer_id = %s))
-        """, (user_id, user_id))
+            VALUES (%s, NOW(), 'Completed', %s)
+        """, (user_id, total_amount))
         order_id = cur.lastrowid
 
         # Insert items into Order_Item table
-        for book_id, quantity in cart_items:
+        for book_id, quantity, price in cart_items:
             cur.execute("""
                 INSERT INTO Order_Item (order_id, book_id, quantity, unit_price)
-                SELECT %s, %s, %s, price 
-                FROM Book 
-                WHERE book_id = %s
-            """, (order_id, book_id, quantity, book_id))
+                VALUES (%s, %s, %s, %s)
+            """, (order_id, book_id, quantity, price))
 
         # Insert payment details
         cur.execute("""
             INSERT INTO Payment (order_id, payment_method, payment_date, amount)
-            VALUES (%s, 'Credit Card', NOW(), 
-                (SELECT SUM(c.quantity * b.price) 
-                 FROM Cart c 
-                 JOIN Book b ON c.book_id = b.book_id 
-                 WHERE c.customer_id = %s))
-        """, (order_id, user_id))
+            VALUES (%s, 'Credit Card', NOW(), %s)
+        """, (order_id, total_amount))
 
         # Insert shipment details
         cur.execute("""
@@ -444,77 +419,13 @@ def complete_checkout():
         cur.close()
 
         flash("Your purchase was successful!", "success")
-        return redirect(url_for('order_success'))
+        return redirect(url_for('order_confirmation', order_id=order_id))
     except Exception as e:
         flash("An error occurred during checkout. Please try again.", "danger")
-        print("Error:", e)
+        print("Error in complete_checkout:", e)
         return redirect(url_for('checkout'))
 
-@app.route('/order_success')
-def order_success():
-    return render_template('order_success.html')
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('home'))
-@app.route('/complete_checkout', methods=['POST'])
-def complete_checkout():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    try:
-        user_id = session['user_id']
-
-        # Fetch cart items and calculate total
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT b.book_id, c.quantity, b.price, (c.quantity * b.price) AS subtotal
-            FROM Cart c
-            JOIN Book b ON c.book_id = b.book_id
-            WHERE c.customer_id = %s
-        """, (user_id,))
-        cart_items = cur.fetchall()
-        total = sum(item[3] for item in cart_items)
-        
-        # Insert the order
-        cur.execute("""
-            INSERT INTO `Order` (customer_id, order_date, order_status, total_amount)
-            VALUES (%s, NOW(), 'Completed', %s)
-        """, (user_id, total))
-        order_id = cur.lastrowid
-
-        # Insert order items
-        for item in cart_items:
-            cur.execute("""
-                INSERT INTO Order_Item (order_id, book_id, quantity, unit_price)
-                VALUES (%s, %s, %s, %s)
-            """, (order_id, item[0], item[1], item[2]))
-
-        # Save payment info
-        card_name = request.form['card_name']
-        card_number = request.form['card_number']
-        expiry_date = request.form['expiry_date']
-        cvv = request.form['cvv']
-        cur.execute("""
-            INSERT INTO Payment (order_id, payment_method, payment_date, amount)
-            VALUES (%s, 'Credit Card', NOW(), %s)
-        """, (order_id, total))
-        
-        # Clear cart
-        cur.execute("DELETE FROM Cart WHERE customer_id = %s", (user_id,))
-        
-        mysql.connection.commit()
-        cur.close()
-
-        # Redirect to order confirmation page
-        return redirect(url_for('order_confirmation', order_id=order_id))
-
-    except Exception as e:
-        print("Error:", e)
-        return jsonify({"error": str(e)}), 500
-
-# Order Confirmation Page
 @app.route('/order_confirmation/<int:order_id>')
 def order_confirmation(order_id):
     if 'user_id' not in session:
@@ -545,9 +456,8 @@ def order_confirmation(order_id):
         }
 
         return render_template('order_confirmation.html', order=formatted_details)
-
     except Exception as e:
-        print("Error:", e)
+        print("Error in order_confirmation:", e)
         return jsonify({"error": str(e)}), 500
 
 # Admin Dashboard (Optional)

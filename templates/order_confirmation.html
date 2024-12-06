@@ -3,34 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmation</title>
+    <title>Order Confirmation - Book Haven</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <a href="/" class="navbar-brand">Book Haven</a>
-        </nav>
-    </header>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">Book Haven</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/catalog">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
+                    {% if session['user_id'] %}
+                        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <main class="container">
-        <h1>Order Confirmation</h1>
-        <p>Thank you for your purchase!</p>
-        <h3>Order Details:</h3>
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <h1 class="mb-4">Order Confirmation</h1>
+        <div class="alert alert-success">
+            Thank you for your purchase!
+        </div>
+        <h3>Order Details</h3>
         <p><strong>Order ID:</strong> {{ order.order_id }}</p>
         <p><strong>Date:</strong> {{ order.order_date }}</p>
         <p><strong>Total:</strong> ${{ order.total_amount }}</p>
         <h4>Items:</h4>
-        <ul>
+        <ul class="list-group">
             {% for item in order.items %}
-            <li>{{ item.title }} - {{ item.quantity }} x ${{ item.unit_price }}</li>
+            <li class="list-group-item">
+                <strong>{{ item.title }}</strong> - {{ item.quantity }} x ${{ item.unit_price }}
+            </li>
             {% endfor %}
         </ul>
-        <a href="/catalog" class="btn btn-primary">Continue Shopping</a>
-    </main>
+        <a href="/catalog" class="btn btn-primary mt-4">Continue Shopping</a>
+    </div>
 
-    <footer>
-        <p>&copy; 2024 Book Haven. All rights reserved.</p>
+    <!-- Footer -->
+    <footer class="bg-light text-center py-4 mt-5">
+        <p class="mb-0">&copy; 2024 Book Haven. All rights reserved.</p>
     </footer>
 </body>
 </html>
