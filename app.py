@@ -135,42 +135,165 @@ def admin_dashboard():
 def init_db():
     try:
         cur = mysql.connection.cursor()
+        
+        # Address Table
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS Customers (
-                customer_id INT AUTO_INCREMENT PRIMARY KEY,
-                customer_name VARCHAR(50) NOT NULL,
-                email VARCHAR(100) NOT NULL UNIQUE,
-                phone VARCHAR(15),
-                address VARCHAR(255),
-                role_id INT DEFAULT 1,
-                status BOOLEAN DEFAULT TRUE
+            CREATE TABLE IF NOT EXISTS Address (
+                address_id INT AUTO_INCREMENT PRIMARY KEY,
+                street VARCHAR(100),
+                city VARCHAR(50),
+                state VARCHAR(50),
+                zip VARCHAR(10),
+                country VARCHAR(50),
+                address_type ENUM('Home', 'Business')
             )
         """)
+
+        # Customer Table
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS Products (
-                product_id INT AUTO_INCREMENT PRIMARY KEY,
-                product_name VARCHAR(100) NOT NULL,
+            CREATE TABLE IF NOT EXISTS Customer (
+                customer_id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,  -- Hashed password
+                customer_type ENUM('Individual', 'Business') NOT NULL,
+                address_id INT,
+                FOREIGN KEY (address_id) REFERENCES Address(address_id)
+            )
+        """)
+
+        # Individual Customer Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Individual_Customer (
+                individual_id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT,
+                age INT,
+                marital_status ENUM('Single', 'Married'),
+                gender ENUM('Male', 'Female'),
+                income DECIMAL(10, 2),
+                FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+            )
+        """)
+
+        # Business Customer Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Business_Customer (
+                business_id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT,
+                business_category VARCHAR(50),
+                gross_income DECIMAL(10, 2),
+                FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+            )
+        """)
+
+        # Book Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Book (
+                book_id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(200) NOT NULL,
+                author VARCHAR(100),
+                genre VARCHAR(50),
                 price DECIMAL(10, 2) NOT NULL,
                 inventory INT NOT NULL,
-                category VARCHAR(50),
-                popularity INT DEFAULT 0
+                publisher_id INT,
+                cover_type ENUM('Hardcover', 'Softcover', 'First Edition'),
+                FOREIGN KEY (publisher_id) REFERENCES Publisher(publisher_id)
             )
         """)
+
+        # Publisher Table
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS Orders (
-                order_id INT AUTO_INCREMENT PRIMARY KEY,
-                customer_id INT NOT NULL,
-                order_date DATE NOT NULL,
-                total_amount DECIMAL(10, 2) NOT NULL,
-                FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+            CREATE TABLE IF NOT EXISTS Publisher (
+                publisher_id INT AUTO_INCREMENT PRIMARY KEY,
+                publisher_name VARCHAR(100),
+                email VARCHAR(100),
+                phone VARCHAR(15),
+                address_id INT,
+                FOREIGN KEY (address_id) REFERENCES Address(address_id)
             )
         """)
+
+        # Order Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS `Order` (
+                order_id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT,
+                order_date DATE NOT NULL,
+                order_status ENUM('Pending', 'Completed', 'Cancelled'),
+                total_amount DECIMAL(10, 2),
+                FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+            )
+        """)
+
+        # Order Item Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Order_Item (
+                order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id INT,
+                book_id INT,
+                quantity INT NOT NULL,
+                unit_price DECIMAL(10, 2),
+                FOREIGN KEY (order_id) REFERENCES `Order`(order_id),
+                FOREIGN KEY (book_id) REFERENCES Book(book_id)
+            )
+        """)
+
+        # Payment Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Payment (
+                payment_id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id INT,
+                payment_method ENUM('Credit Card', 'PayPal', 'Bank Transfer'),
+                payment_date DATE NOT NULL,
+                amount DECIMAL(10, 2),
+                FOREIGN KEY (order_id) REFERENCES `Order`(order_id)
+            )
+        """)
+
+        # Shipment Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Shipment (
+                shipment_id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id INT,
+                shipment_date DATE,
+                delivery_status ENUM('Pending', 'Shipped', 'Delivered', 'Cancelled'),
+                address_id INT,
+                FOREIGN KEY (order_id) REFERENCES `Order`(order_id),
+                FOREIGN KEY (address_id) REFERENCES Address(address_id)
+            )
+        """)
+
+        # Cart Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Cart (
+                cart_id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT,
+                book_id INT,
+                quantity INT,
+                FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
+                FOREIGN KEY (book_id) REFERENCES Book(book_id)
+            )
+        """)
+
+        # Review Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Review (
+                review_id INT AUTO_INCREMENT PRIMARY KEY,
+                book_id INT,
+                customer_id INT,
+                ranking INT CHECK(ranking BETWEEN 1 AND 5),
+                review_text TEXT,
+                review_date DATE,
+                FOREIGN KEY (book_id) REFERENCES Book(book_id),
+                FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+            )
+        """)
+
         mysql.connection.commit()
         cur.close()
-        return "Database initialized successfully!"
+        return "Database initialized successfully with all 12 tables!"
     except Exception as e:
         return jsonify({"error": str(e)})
-
 
 # Create Customer
 @app.route('/customers', methods=['POST'])
