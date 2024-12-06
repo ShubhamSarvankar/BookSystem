@@ -33,7 +33,37 @@ def not_found_error(error):
 # Homepage
 @app.route('/')
 def home():
-    return render_template('index.html')
+    try:
+        cur = mysql.connection.cursor()
+        query = """
+            SELECT b.book_id, b.title, b.author, b.price, b.inventory, b.cover_type, COUNT(oi.book_id) AS order_count
+            FROM Book b
+            JOIN Order_Item oi ON b.book_id = oi.book_id
+            GROUP BY b.book_id
+            ORDER BY order_count DESC
+            LIMIT 3
+        """
+        cur.execute(query)
+        books = cur.fetchall()
+        cur.close()
+        
+        # Transform data into a list of dictionaries for template rendering
+        books_data = [
+            {
+                "id": book[0],
+                "title": book[1],
+                "author": book[2],
+                "price": book[3],
+                "inventory": book[4],
+                "cover_type": book[5],
+                "order_count": book[6]
+            }
+            for book in books
+        ]
+        
+        return render_template('index.html', books=books_data)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 # Book Catalog
 @app.route('/catalog')
