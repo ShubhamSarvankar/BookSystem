@@ -268,7 +268,7 @@ def cart():
         user_id = session['user_id']
         cur = mysql.connection.cursor()
         cur.execute("""
-            SELECT b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
+            SELECT b.book_id, b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
             FROM Cart c
             JOIN Book b ON c.book_id = b.book_id
             WHERE c.customer_id = %s
@@ -276,13 +276,14 @@ def cart():
         cart_items = cur.fetchall()
         cur.close()
 
-        total = sum(item[3] for item in cart_items)  # Calculate total price
+        total = sum(item[4] for item in cart_items)  # Updated to match new index
         formatted_items = [
             {
-                "title": item[0],
-                "quantity": item[1],
-                "price": item[2],
-                "subtotal": item[3]
+                "book_id": item[0],  # Include book_id
+                "title": item[1],
+                "quantity": item[2],
+                "price": item[3],
+                "subtotal": item[4]
             }
             for item in cart_items
         ]
@@ -299,6 +300,11 @@ def remove_from_cart():
     try:
         user_id = session['user_id']
         book_id = request.form.get('book_id')
+
+        # Ensure book_id is valid
+        if not book_id:
+            flash("Invalid book selected. Please try again.", "danger")
+            return redirect(url_for('cart'))
 
         cur = mysql.connection.cursor()
         cur.execute("""
