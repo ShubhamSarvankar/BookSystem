@@ -135,7 +135,7 @@ def admin_dashboard():
 def init_db():
     try:
         cur = mysql.connection.cursor()
-        
+
         # Address Table
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Address (
@@ -186,6 +186,18 @@ def init_db():
             )
         """)
 
+        # Publisher Table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Publisher (
+                publisher_id INT AUTO_INCREMENT PRIMARY KEY,
+                publisher_name VARCHAR(100),
+                email VARCHAR(100),
+                phone VARCHAR(15),
+                address_id INT,
+                FOREIGN KEY (address_id) REFERENCES Address(address_id)
+            )
+        """)
+
         # Book Table
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Book (
@@ -198,18 +210,6 @@ def init_db():
                 publisher_id INT,
                 cover_type ENUM('Hardcover', 'Softcover', 'First Edition'),
                 FOREIGN KEY (publisher_id) REFERENCES Publisher(publisher_id)
-            )
-        """)
-
-        # Publisher Table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS Publisher (
-                publisher_id INT AUTO_INCREMENT PRIMARY KEY,
-                publisher_name VARCHAR(100),
-                email VARCHAR(100),
-                phone VARCHAR(15),
-                address_id INT,
-                FOREIGN KEY (address_id) REFERENCES Address(address_id)
             )
         """)
 
