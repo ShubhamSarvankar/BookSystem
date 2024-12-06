@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_mysqldb import MySQL
 import re
 import os
+from flask import session
+from flask_bcrypt import Bcrypt
+from flask_session import Session
 
 app = Flask(__name__)
 
@@ -10,6 +13,11 @@ app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
+
+bcrypt = Bcrypt(app)
 
 mysql = MySQL(app)
 
@@ -106,10 +114,18 @@ def register():
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+
         try:
             cur = mysql.connection.cursor()
-            cur.execute("INSERT INTO Customers (customer_name, email, password) VALUES (%s, %s, %s)",
-                        (name, email, password))
+            cur.execute("SELECT * FROM Customer WHERE email = %s", (email,))
+            if cur.fetchone():
+                return "Email already exists", 400
+
+            cur.execute(
+                "INSERT INTO Customer (customer_name, email, password, customer_type) VALUES (%s, %s, %s, %s)",
+                (name, email, hashed_password, 'Individual')
+            )
             mysql.connection.commit()
             cur.close()
             return redirect(url_for('login'))
@@ -117,38 +133,46 @@ def register():
             return jsonify({"error": str(e)})
     return render_template('register.html')
 
-# Login Page
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+
         try:
             cur = mysql.connection.cursor()
-            cur.execute("SELECT * FROM Customers WHERE email = %s AND password = %s", (email, password))
+            cur.execute("SELECT * FROM Customer WHERE email = %s", (email,))
             user = cur.fetchone()
             cur.close()
-            if user:
-                return redirect(url_for('catalog'))
+
+            if user and bcrypt.check_password_hash(user[3], password):  # Assuming password is at index 3
+                session['user_id'] = user[0]  # Assuming customer_id is at index 0
+                session['user_name'] = user[1]  # Assuming customer_name is at index 1
+                return redirect(url_for('home'))
             else:
                 return "Invalid credentials", 401
         except Exception as e:
             return jsonify({"error": str(e)})
     return render_template('login.html')
 
-# Shopping Cart
 @app.route('/cart')
 def cart():
-    # In a real application, fetch cart details from the database
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    # Fetch and render cart details for the logged-in user
     return render_template('cart.html')
 
-# Checkout Page
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    if request.method == 'POST':
-        # Handle checkout logic here
-        return redirect(url_for('order_confirmation'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    # Checkout logic here
     return render_template('checkout.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('home'))
 
 # Order Confirmation Page
 @app.route('/order-confirmation')
