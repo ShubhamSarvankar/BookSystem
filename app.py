@@ -121,13 +121,43 @@ def catalog():
     except Exception as e:
         return jsonify({"error": str(e)})
     
-@app.route('/book/<int:book_id>')
+@app.route('/book/<int:book_id>', methods=['GET', 'POST'])
 def book_details(book_id):
     try:
         cur = mysql.connection.cursor()
+
+        # Fetch book details
         cur.execute("SELECT * FROM Book WHERE book_id = %s", (book_id,))
         book = cur.fetchone()
+
+        # Fetch reviews for the book
+        cur.execute("""
+            SELECT r.review_text, r.ranking, c.customer_name 
+            FROM Review r 
+            JOIN Customer c ON r.customer_id = c.customer_id 
+            WHERE r.book_id = %s
+        """, (book_id,))
+        reviews = cur.fetchall()
+
+        if request.method == 'POST':
+            if 'user_id' not in session:
+                flash("Please log in to add items to your cart.", "warning")
+                return redirect(url_for('login'))
+
+            quantity = int(request.form.get('quantity', 1))
+            user_id = session['user_id']
+
+            # Add to cart
+            cur.execute("""
+                INSERT INTO Cart (customer_id, book_id, quantity)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
+            """, (user_id, book_id, quantity))
+            mysql.connection.commit()
+            flash("Item added to cart!", "success")
+
         cur.close()
+
         if book:
             book_data = {
                 "book_id": book[0],
@@ -138,10 +168,15 @@ def book_details(book_id):
                 "inventory": book[5],
                 "cover_type": book[6],
             }
-            return render_template('book.html', book=book_data)
+            reviews_data = [
+                {"review_text": r[0], "ranking": r[1], "customer_name": r[2]}
+                for r in reviews
+            ]
+            return render_template('book.html', book=book_data, reviews=reviews_data)
         else:
             return "Book not found", 404
     except Exception as e:
+        print("Error:", e)
         return jsonify({"error": str(e)})
 
 # User Registration Page

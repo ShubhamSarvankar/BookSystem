@@ -3,61 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Details</title>
-    <!-- Bootstrap CSS -->
+    <title>{{ book.title }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="/">Book Store</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    {% if session['user_id'] %}
+                        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Book Details Section -->
     <div class="container mt-5">
         <div class="row">
             <div class="col-md-5">
-                <img src="{{ book.image_url }}" alt="{{ book.title }}" class="img-fluid rounded shadow">
+                <img src="{{ book.image_url or url_for('static', filename='images/placeholder.png') }}" alt="{{ book.title }}" class="img-fluid rounded shadow">
             </div>
             <div class="col-md-7">
                 <h1 class="display-6">{{ book.title }}</h1>
                 <p class="text-muted">By {{ book.author }}</p>
+                <p class="lead">Genre: <strong>{{ book.genre }}</strong></p>
                 <p class="lead">Price: <strong>${{ book.price }}</strong></p>
-                <p>{{ book.description }}</p>
-                <p><strong>Category:</strong> {{ book.category }}</p>
-                <p><strong>Popularity:</strong> {{ book.popularity }}</p>
-                <form method="post" action="/add_to_cart">
-                    <input type="hidden" name="book_id" value="{{ book.id }}">
+                <p class="lead">Cover Type: <strong>{{ book.cover_type }}</strong></p>
+                <p><strong>Available:</strong> {{ book.inventory }}</p>
+                <form method="post">
                     <div class="input-group mb-3">
-                        <input type="number" class="form-control" name="quantity" value="1" min="1">
+                        <input type="number" class="form-control" name="quantity" value="1" min="1" max="{{ book.inventory }}">
                         <button type="submit" class="btn btn-primary">Add to Cart</button>
                     </div>
                 </form>
             </div>
         </div>
+
+        <hr class="my-5">
+
+        <!-- Reviews Section -->
+        <h3>Customer Reviews</h3>
+        {% if reviews %}
+            <div class="list-group">
+                {% for review in reviews %}
+                    <div class="list-group-item">
+                        <p><strong>{{ review.customer_name }}</strong> rated {{ review.ranking }}/5</p>
+                        <p>{{ review.review_text }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No reviews yet. Be the first to review this book!</p>
+        {% endif %}
     </div>
 
-    <!-- Footer -->
     <footer class="bg-light text-center text-lg-start mt-5">
         <div class="container p-4">
             <p>&copy; 2024 Book Store. All rights reserved.</p>
         </div>
     </footer>
-
-    <!-- Bootstrap JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
