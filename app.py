@@ -467,19 +467,45 @@ def order_confirmation(order_id):
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+    
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username == 'admin' and password == 'admin':
+            session['is_admin'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash("Invalid credentials, try again.", "danger")
+    return render_template('admin_login.html')
 
-# Admin Dashboard (Optional)
-@app.route('/admin')
+@app.route('/admin_dashboard')
 def admin_dashboard():
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+
     try:
         cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM Orderss")  # Fetch all orders for admin view
-        orders = cur.fetchall()
+        cur.execute("""
+            SELECT SUM(profit) AS total_profit 
+            FROM Orderss
+        """)
+        total_profit = cur.fetchone()[0]
         cur.close()
-        return render_template('admin_dashboard.html', orders=orders)
-    except Exception as e:
-        return jsonify({"error": str(e)})
 
+        total_profit = total_profit if total_profit else 0
+        return render_template('admin_dashboard.html', total_profit=total_profit)
+
+    except Exception as e:
+        print(f"Error in admin_dashboard: {e}")
+        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("You have been logged out.", "info")
+    return redirect(url_for('login'))
 
 @app.route('/init_db', methods=['GET'])
 def init_db():
