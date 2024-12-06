@@ -448,43 +448,66 @@ def order_confirmation(order_id):
         return redirect(url_for('login'))
 
     try:
+        print(f"Processing order confirmation for order_id: {order_id}")
+        
+        # Step 1: Fetch order and item details
         cur = mysql.connection.cursor()
-        print(f"Fetching order details for order_id: {order_id}")
-
         cur.execute("""
-            SELECT o.order_id, o.order_date, o.total_amount, oi.book_id, b.title, oi.quantity, oi.unit_price
+            SELECT 
+                o.order_id, 
+                o.order_date, 
+                o.total_amount, 
+                oi.book_id, 
+                b.title, 
+                oi.quantity, 
+                oi.unit_price
             FROM Orderss o
             JOIN Order_Item oi ON o.order_id = oi.order_id
             JOIN Book b ON oi.book_id = b.book_id
             WHERE o.order_id = %s
         """, (order_id,))
-        order_details = cur.fetchall()
-        print(f"Fetched order details: {order_details}")
-
+        raw_order_details = cur.fetchall()
         cur.close()
 
-        if not order_details:
-            print(f"No order found for order_id: {order_id}")
+        # Step 2: Validate and transform data
+        if not raw_order_details:
+            print(f"No order details found for order_id: {order_id}")
             return "Order not found", 404
 
-        formatted_details = {
-            "order_id": order_details[0][0],
-            "order_date": order_details[0][1],
-            "total_amount": float(order_details[0][2]),  # Ensure Decimal is converted to float
-            "items": [
-                {"book_id": item[3], "title": item[4], "quantity": item[5], "unit_price": float(item[6])}
-                for item in order_details
-            ]
+        # Extract order metadata (assuming at least one item exists)
+        order_metadata = {
+            "order_id": raw_order_details[0][0],
+            "order_date": raw_order_details[0][1],
+            "total_amount": float(raw_order_details[0][2])  # Convert Decimal to float for JSON compatibility
         }
 
-        print(f"Formatted order details: {formatted_details}")
+        # Extract item details
+        items = []
+        for item in raw_order_details:
+            items.append({
+                "book_id": item[3],
+                "title": item[4],
+                "quantity": item[5],
+                "unit_price": float(item[6])  # Convert Decimal to float
+            })
 
-        return render_template('order_confirmation.html', order=formatted_details)
+        # Final formatted order data
+        formatted_order = {
+            **order_metadata,  # Merge metadata
+            "items": items  # Add items
+        }
+
+        print(f"Formatted Order Data: {formatted_order}")
+
+        # Step 3: Render the template with the processed data
+        return render_template('order_confirmation.html', order=formatted_order)
+
     except Exception as e:
-        print("Error in order_confirmation:", e)
+        # Catch and log exceptions
+        print("An error occurred while processing order confirmation:", e)
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
 
 # Admin Dashboard (Optional)
 @app.route('/admin')
