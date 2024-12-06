@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, flash, jsonify, render_template, redirect, url_for
 from flask_mysqldb import MySQL
 import re
 import os
@@ -148,27 +148,55 @@ def book_details(book_id):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        name = request.form.get('name')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        customer_type = 'Individual'  # Assuming individual registration here
+        address_details = {
+            'street': request.form.get('street'),
+            'city': request.form.get('city'),
+            'state': request.form.get('state'),
+            'zip': request.form.get('zip'),
+            'country': request.form.get('country'),
+            'address_type': 'Home',  # Defaulting to Home
+        }
 
         try:
+            # Insert customer details
             cur = mysql.connection.cursor()
-            cur.execute("SELECT * FROM Customer WHERE email = %s", (email,))
-            if cur.fetchone():
-                return "Email already exists", 400
+            customer_query = """
+                INSERT INTO Customer (customer_name, email, password, customer_type)
+                VALUES (%s, %s, %s, %s)
+            """
+            cur.execute(customer_query, (name, email, password, customer_type))
+            customer_id = cur.lastrowid  # Get the generated customer_id
 
-            cur.execute(
-                "INSERT INTO Customer (customer_name, email, password, customer_type) VALUES (%s, %s, %s, %s)",
-                (name, email, hashed_password, 'Individual')
-            )
+            # Insert address details
+            address_query = """
+                INSERT INTO Address (customer_id, street, city, state, zip, country, address_type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cur.execute(address_query, (
+                customer_id,
+                address_details['street'],
+                address_details['city'],
+                address_details['state'],
+                address_details['zip'],
+                address_details['country'],
+                address_details['address_type']
+            ))
+
             mysql.connection.commit()
             cur.close()
-            return redirect(url_for('login'))
+
+            flash("Registration successful! Please log in.", "success")
+            return redirect('/login')
         except Exception as e:
-            return jsonify({"error": str(e)})
-    return render_template('register.html')
+            print("Registration Error:", e)
+            flash("An error occurred during registration. Please try again.", "danger")
+            return redirect('/register')
+    else:
+        return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -231,6 +259,8 @@ def checkout():
     try:
         user_id = session['user_id']
         cur = mysql.connection.cursor()
+
+        # Fetch cart items for the logged-in user
         cur.execute("""
             SELECT b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
             FROM Cart c
@@ -238,12 +268,13 @@ def checkout():
             WHERE c.customer_id = %s
         """, (user_id,))
         cart_items = cur.fetchall()
-        cur.close()
 
         if not cart_items:
+            cur.close()
             return render_template('checkout.html', error="Your cart is empty!")
 
-        total = sum(item[3] for item in cart_items)  # Calculate total price
+        # Calculate total price
+        total = sum(item[3] for item in cart_items)
         formatted_items = [
             {
                 "title": item[0],
@@ -254,7 +285,28 @@ def checkout():
             for item in cart_items
         ]
 
-        return render_template('checkout.html', cart_items=formatted_items, total=total)
+        # Fetch addresses for the logged-in user
+        cur.execute("""
+            SELECT address_id, street, city, state, zip
+            FROM Address
+            WHERE customer_id = %s
+        """, (user_id,))
+        addresses = cur.fetchall()
+
+        formatted_addresses = [
+            {
+                "address_id": address[0],
+                "street": address[1],
+                "city": address[2],
+                "state": address[3],
+                "zip": address[4]
+            }
+            for address in addresses
+        ]
+
+        cur.close()
+
+        return render_template('checkout.html', cart_items=formatted_items, total=total, addresses=formatted_addresses)
     except Exception as e:
         print("Error:", e)
         return jsonify({"error": str(e)})

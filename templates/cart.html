@@ -1,31 +1,54 @@
-@app.route('/cart')
-def cart():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    try:
-        user_id = session['user_id']
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
-            FROM Cart c
-            JOIN Book b ON c.book_id = b.book_id
-            WHERE c.customer_id = %s
-        """, (user_id,))
-        cart_items = cur.fetchall()
-        cur.close()
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">Book Haven</a>
+        </nav>
+    </header>
 
-        total = sum(item[3] for item in cart_items)  # Calculate total price
-        formatted_items = [
-            {
-                "title": item[0],
-                "quantity": item[1],
-                "price": item[2],
-                "subtotal": item[3]
-            }
-            for item in cart_items
-        ]
+    <main class="container">
+        <h1>Your Cart</h1>
+        {% if cart_items %}
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <td>{{ item.title }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>${{ item.price }}</td>
+                    <td>${{ item.subtotal }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="cart-total">
+            <strong>Total:</strong> ${{ total }}
+        </div>
+        <div class="cart-actions">
+            <a href="/checkout" class="btn btn-primary">Proceed to Checkout</a>
+        </div>
+        {% else %}
+        <p>Your cart is empty. Start shopping!</p>
+        {% endif %}
+    </main>
 
-        return render_template('cart.html', cart_items=formatted_items, total=total)
-    except Exception as e:
-        print("Error:", e)
-        return jsonify({"error": str(e)})
+    <footer>
+        <p>&copy; 2024 Book Haven. All rights reserved.</p>
+    </footer>
+</body>
+</html>
