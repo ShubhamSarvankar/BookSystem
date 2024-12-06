@@ -449,10 +449,8 @@ def order_confirmation(order_id):
 
     try:
         cur = mysql.connection.cursor()
-        # Debug: Log the order_id being queried
         print(f"Fetching order details for order_id: {order_id}")
 
-        # Execute the query to fetch order details
         cur.execute("""
             SELECT o.order_id, o.order_date, o.total_amount, oi.book_id, b.title, oi.quantity, oi.unit_price
             FROM Orderss o
@@ -460,44 +458,32 @@ def order_confirmation(order_id):
             JOIN Book b ON oi.book_id = b.book_id
             WHERE o.order_id = %s
         """, (order_id,))
-
-        # Fetch all order details
         order_details = cur.fetchall()
-        # Debug: Log the raw fetched data
         print(f"Fetched order details: {order_details}")
 
         cur.close()
 
-        # Handle case where no order details are returned
         if not order_details:
             print(f"No order found for order_id: {order_id}")
             return "Order not found", 404
 
-        # Format the order details into a dictionary
         formatted_details = {
             "order_id": order_details[0][0],
             "order_date": order_details[0][1],
-            "total_amount": order_details[0][2],
+            "total_amount": float(order_details[0][2]),  # Ensure Decimal is converted to float
             "items": [
-                {"book_id": item[3], "title": item[4], "quantity": item[5], "unit_price": item[6]}
+                {"book_id": item[3], "title": item[4], "quantity": item[5], "unit_price": float(item[6])}
                 for item in order_details
             ]
         }
 
-        # Debug: Log the formatted order details
         print(f"Formatted order details: {formatted_details}")
 
         return render_template('order_confirmation.html', order=formatted_details)
-
     except Exception as e:
-        # Log the error to the console for debugging
         print("Error in order_confirmation:", e)
-
-        # Optionally, log the stack trace for deeper debugging
         import traceback
         traceback.print_exc()
-
-        # Return an error message as a JSON response
         return jsonify({"error": str(e)}), 500
 
 # Admin Dashboard (Optional)
