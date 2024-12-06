@@ -384,12 +384,12 @@ def complete_checkout():
     try:
         user_id = session['user_id']
         address_id = request.form.get('address_id')
-        card_details = request.form.get('card_details')  # Add additional fields if necessary
+        card_details = request.form.get('card_details')
 
         # Retrieve cart items
         cur = mysql.connection.cursor()
         cur.execute("""
-            SELECT book_id, quantity, price
+            SELECT c.book_id, c.quantity, b.price
             FROM Cart c
             JOIN Book b ON c.book_id = b.book_id
             WHERE c.customer_id = %s
