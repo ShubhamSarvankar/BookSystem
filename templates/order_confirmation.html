@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - Book Haven</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">Book Haven</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/products">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/orders">Orders</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Confirmation Message -->
+    <div class="container text-center my-5">
+        <h1 class="display-4 text-success">Thank You for Your Purchase!</h1>
+        <p class="lead">Your order has been successfully placed.</p>
+        <p class="text-muted">Order Number: <strong>{{ order_id }}</strong></p>
+        <p class="text-muted">A confirmation email has been sent to <strong>{{ email }}</strong>.</p>
+        <a href="/" class="btn btn-primary mt-3">Continue Shopping</a>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="container my-5">
+        <h2 class="mb-4">Order Summary</h2>
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Book</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_items %}
+                <tr>
+                    <td>{{ item.book_name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>${{ item.price }}</td>
+                    <td>${{ item.quantity * item.price }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="3" class="text-end fw-bold">Grand Total</td>
+                    <td class="fw-bold">${{ order_total }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p class="mb-1">&copy; 2024 Book Haven. All rights reserved.</p>
+            <small>Designed with care for book lovers.</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

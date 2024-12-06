@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="An e-commerce platform to buy your favorite books.">
+    <title>Book Haven</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">Book Haven</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/products">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-section text-center text-white d-flex align-items-center justify-content-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold">Welcome to Book Haven</h1>
+            <p class="lead">Discover, explore, and shop the best books in one place.</p>
+            <form action="/search" method="GET" class="search-form d-flex justify-content-center mt-4">
+                <input type="text" name="query" class="form-control w-50" placeholder="Search for books..." aria-label="Search">
+                <button type="submit" class="btn btn-primary ms-2">Search</button>
+            </form>
+        </div>
+    </header>
+
+    <!-- Featured Books Section -->
+    <section class="featured-books py-5">
+        <div class="container">
+            <h2 class="text-center fw-bold mb-4">Featured Books</h2>
+            <div class="row">
+                {% for book in books %}
+                <div class="col-md-4">
+                    <div class="card book-card">
+                        <img src="{{ book.image_url }}" class="card-img-top" alt="{{ book.title }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ book.title }}</h5>
+                            <p class="card-text">{{ book.author }}</p>
+                            <p class="card-text text-primary fw-bold">${{ book.price }}</p>
+                            <a href="/product/{{ book.id }}" class="btn btn-outline-primary w-100">View Details</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p class="mb-1">&copy; 2024 Book Haven. All rights reserved.</p>
+            <small>Designed with care for book lovers.</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

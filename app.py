@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_mysqldb import MySQL
 import re
 import os
@@ -30,10 +30,106 @@ def internal_error(error):
 def not_found_error(error):
     return jsonify({'error': 'The requested resource was not found'}), 404
 
-# Test Route
+# Homepage
 @app.route('/')
-def index():
-    return "Flask app connected to FreeMySQLHosting.net database!"
+def home():
+    return render_template('index.html')
+
+# Book Catalog
+@app.route('/catalog')
+def catalog():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM Products")  # Fetch all books from the database
+        books = cur.fetchall()
+        cur.close()
+        return render_template('catalog.html', books=books)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# Book Details Page
+@app.route('/book/<int:book_id>')
+def book_details(book_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM Products WHERE product_id = %s", (book_id,))
+        book = cur.fetchone()
+        cur.close()
+        if book:
+            return render_template('book.html', book=book)
+        else:
+            return "Book not found", 404
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# User Registration Page
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("INSERT INTO Customers (customer_name, email, password) VALUES (%s, %s, %s)",
+                        (name, email, password))
+            mysql.connection.commit()
+            cur.close()
+            return redirect(url_for('login'))
+        except Exception as e:
+            return jsonify({"error": str(e)})
+    return render_template('register.html')
+
+# Login Page
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT * FROM Customers WHERE email = %s AND password = %s", (email, password))
+            user = cur.fetchone()
+            cur.close()
+            if user:
+                return redirect(url_for('catalog'))
+            else:
+                return "Invalid credentials", 401
+        except Exception as e:
+            return jsonify({"error": str(e)})
+    return render_template('login.html')
+
+# Shopping Cart
+@app.route('/cart')
+def cart():
+    # In a real application, fetch cart details from the database
+    return render_template('cart.html')
+
+# Checkout Page
+@app.route('/checkout', methods=['GET', 'POST'])
+def checkout():
+    if request.method == 'POST':
+        # Handle checkout logic here
+        return redirect(url_for('order_confirmation'))
+    return render_template('checkout.html')
+
+# Order Confirmation Page
+@app.route('/order-confirmation')
+def order_confirmation():
+    return render_template('order_confirmation.html')
+
+# Admin Dashboard (Optional)
+@app.route('/admin')
+def admin_dashboard():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM Orders")  # Fetch all orders for admin view
+        orders = cur.fetchall()
+        cur.close()
+        return render_template('admin_dashboard.html', orders=orders)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 @app.route('/init_db', methods=['GET'])
 def init_db():
