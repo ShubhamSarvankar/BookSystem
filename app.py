@@ -379,6 +379,81 @@ def checkout():
         print("Error:", e)
         return jsonify({"error": str(e)})
 
+@app.route('/complete_checkout', methods=['POST'])
+def complete_checkout():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    address_id = request.form.get('address_id')
+    card_details = request.form.get('card_details')
+
+    try:
+        # Retrieve cart items
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT book_id, quantity
+            FROM Cart
+            WHERE customer_id = %s
+        """, (user_id,))
+        cart_items = cur.fetchall()
+
+        if not cart_items:
+            flash("Your cart is empty. Please add items to proceed.", "warning")
+            return redirect(url_for('checkout'))
+
+        # Insert order into Orders table
+        cur.execute("""
+            INSERT INTO `Order` (customer_id, order_date, order_status, total_amount)
+            VALUES (%s, NOW(), 'Completed', 
+                (SELECT SUM(c.quantity * b.price) 
+                 FROM Cart c 
+                 JOIN Book b ON c.book_id = b.book_id 
+                 WHERE c.customer_id = %s))
+        """, (user_id, user_id))
+        order_id = cur.lastrowid
+
+        # Insert items into Order_Item table
+        for book_id, quantity in cart_items:
+            cur.execute("""
+                INSERT INTO Order_Item (order_id, book_id, quantity, unit_price)
+                SELECT %s, %s, %s, price 
+                FROM Book 
+                WHERE book_id = %s
+            """, (order_id, book_id, quantity, book_id))
+
+        # Insert payment details
+        cur.execute("""
+            INSERT INTO Payment (order_id, payment_method, payment_date, amount)
+            VALUES (%s, 'Credit Card', NOW(), 
+                (SELECT SUM(c.quantity * b.price) 
+                 FROM Cart c 
+                 JOIN Book b ON c.book_id = b.book_id 
+                 WHERE c.customer_id = %s))
+        """, (order_id, user_id))
+
+        # Insert shipment details
+        cur.execute("""
+            INSERT INTO Shipment (order_id, shipment_date, delivery_status, address_id)
+            VALUES (%s, NOW(), 'Pending', %s)
+        """, (order_id, address_id))
+
+        # Clear the cart
+        cur.execute("DELETE FROM Cart WHERE customer_id = %s", (user_id,))
+        mysql.connection.commit()
+        cur.close()
+
+        flash("Your purchase was successful!", "success")
+        return redirect(url_for('order_success'))
+    except Exception as e:
+        flash("An error occurred during checkout. Please try again.", "danger")
+        print("Error:", e)
+        return redirect(url_for('checkout'))
+
+@app.route('/order_success')
+def order_success():
+    return render_template('order_success.html')
+
 @app.route('/logout')
 def logout():
     session.clear()

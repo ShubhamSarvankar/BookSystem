@@ -3,48 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout</title>
+    <title>Checkout - Book Haven</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <a href="/" class="navbar-brand">Book Haven</a>
-        </nav>
-    </header>
-
-    <main class="container">
-        <h1>Checkout</h1>
-        {% if error %}
-        <p>{{ error }}</p>
-        {% else %}
-        <table class="checkout-table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in cart_items %}
-                <tr>
-                    <td>{{ item.title }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>${{ item.price }}</td>
-                    <td>${{ item.subtotal }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <div class="checkout-total">
-            <strong>Total:</strong> ${{ total }}
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">Book Haven</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/catalog">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
+                    {% if session['user_id'] %}
+                        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
-        <form action="/complete_checkout" method="POST" class="mt-3">
-            <div class="form-group">
-                <label for="address">Select Address:</label>
-                <select name="address_id" id="address" class="form-control">
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <h1 class="mb-4">Checkout</h1>
+        {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>${{ item.price }}</td>
+                        <td>${{ item.subtotal }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <h4>Total: <span class="text-success">${{ total }}</span></h4>
+        </div>
+        <hr>
+        <form action="/complete_checkout" method="POST" class="mt-4">
+            <div class="mb-3">
+                <label for="address" class="form-label">Select Address</label>
+                <select name="address_id" id="address" class="form-select">
                     {% for address in addresses %}
                     <option value="{{ address.address_id }}">
                         {{ address.street }}, {{ address.city }}, {{ address.state }} - {{ address.zip }}
@@ -52,17 +88,20 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group mt-3">
-                <label for="card_details">Card Details:</label>
+            <div class="mb-3">
+                <label for="card_details" class="form-label">Card Details</label>
                 <input type="text" id="card_details" name="card_details" class="form-control" required placeholder="Enter your card details">
             </div>
-            <button type="submit" class="btn btn-success mt-3">Complete Purchase</button>
+            <button type="submit" class="btn btn-success btn-lg w-100">Complete Purchase</button>
         </form>
         {% endif %}
-    </main>
+    </div>
 
-    <footer>
-        <p>&copy; 2024 Book Haven. All rights reserved.</p>
+    <!-- Footer -->
+    <footer class="bg-light text-center py-4 mt-5">
+        <p class="mb-0">&copy; 2024 Book Haven. All rights reserved.</p>
     </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
