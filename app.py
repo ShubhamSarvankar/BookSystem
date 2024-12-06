@@ -82,19 +82,21 @@ def home():
 
 @app.route('/search', methods=['GET'])
 def search():
-    search_query = request.args.get('query', '').strip()
-    try:
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT book_id, title, author, price, cover_type
-            FROM Book
+    query = request.args.get('query', '').strip()
+    if query:
+        cursor = mysql.connection.cursor()
+        search_query = """
+            SELECT * FROM Book 
             WHERE title LIKE %s OR author LIKE %s
-        """, (f"%{search_query}%", f"%{search_query}%"))
-        books = cur.fetchall()
-        cur.close()
-        return render_template('products.html', books=books, search_query=search_query)
-    except Exception as e:
-        return jsonify({"error": str(e)})
+        """
+        like_query = f"%{query}%"
+        cursor.execute(search_query, (like_query, like_query))
+        books = cursor.fetchall()
+        cursor.close()
+
+        return render_template('products.html', books=books, query=query)
+    else:
+        return render_template('products.html', books=[], query=query)
 
 # Book Catalog
 @app.route('/catalog')
