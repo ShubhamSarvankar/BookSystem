@@ -151,6 +151,7 @@ def register():
         name = request.form.get('name')
         email = request.form.get('email')
         password = request.form.get('password')
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')  # Hash the password
         customer_type = 'Individual'  # Assuming individual registration here
         address_details = {
             'street': request.form.get('street'),
@@ -168,7 +169,7 @@ def register():
                 INSERT INTO Customer (customer_name, email, password, customer_type)
                 VALUES (%s, %s, %s, %s)
             """
-            cur.execute(customer_query, (name, email, password, customer_type))
+            cur.execute(customer_query, (name, email, hashed_password, customer_type))
             customer_id = cur.lastrowid  # Get the generated customer_id
 
             # Insert address details
@@ -190,7 +191,7 @@ def register():
             cur.close()
 
             flash("Registration successful! Please log in.", "success")
-            return redirect('/login')
+            return redirect('/register')  # Stay on the register page with a success message
         except Exception as e:
             print("Registration Error:", e)
             flash("An error occurred during registration. Please try again.", "danger")
@@ -213,11 +214,15 @@ def login():
             if user and bcrypt.check_password_hash(user[3], password):  # Assuming password is at index 3
                 session['user_id'] = user[0]  # Assuming customer_id is at index 0
                 session['user_name'] = user[1]  # Assuming customer_name is at index 1
+                flash("Logged in successfully!", "success")
                 return redirect(url_for('home'))
             else:
-                return "Invalid credentials", 401
+                flash("Invalid email or password.", "danger")
+                return redirect('/login')
         except Exception as e:
-            return jsonify({"error": str(e)})
+            print("Login Error:", e)
+            flash("An error occurred. Please try again.", "danger")
+            return redirect('/login')
     return render_template('login.html')
 
 @app.route('/cart')
