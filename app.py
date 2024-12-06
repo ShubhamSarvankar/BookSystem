@@ -394,6 +394,7 @@ def complete_checkout():
             JOIN Book b ON c.book_id = b.book_id
             WHERE c.customer_id = %s
         """, (user_id,))
+        # Ensure fetchall() is called as a method
         cart_items = cur.fetchall()
 
         if not cart_items:
@@ -405,7 +406,7 @@ def complete_checkout():
 
         # Insert order into Orders table
         cur.execute("""
-            INSERT INTO `Order` (customer_id, order_date, order_status, total_amount)
+            INSERT INTO Orderss (customer_id, order_date, order_status, total_amount)
             VALUES (%s, NOW(), 'Completed', %s)
         """, (user_id, total_amount))
         order_id = cur.lastrowid
@@ -449,14 +450,16 @@ def order_confirmation(order_id):
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT o.order_id, o.order_date, o.total_amount, oi.book_id, b.title, oi.quantity, oi.unit_price
-            FROM `Order` o
+            FROM Orderss o
             JOIN Order_Item oi ON o.order_id = oi.order_id
             JOIN Book b ON oi.book_id = b.book_id
             WHERE o.order_id = %s
         """, (order_id,))
-        order_details = cur.fetchall()  # Ensure `fetchall()` is called
+        # Ensure fetchall() is called as a method
+        order_details = cur.fetchall()  
         cur.close()
 
+        # Handle case where no order details are returned
         if not order_details:
             return "Order not found", 404
 
@@ -573,7 +576,7 @@ def init_db():
 
         # Order Table
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS `Order` (
+            CREATE TABLE IF NOT EXISTS Orderss (
                 order_id INT AUTO_INCREMENT PRIMARY KEY,
                 customer_id INT,
                 order_date DATE NOT NULL,
@@ -591,7 +594,7 @@ def init_db():
                 book_id INT,
                 quantity INT NOT NULL,
                 unit_price DECIMAL(10, 2),
-                FOREIGN KEY (order_id) REFERENCES `Order`(order_id),
+                FOREIGN KEY (order_id) REFERENCES Orderss(order_id),
                 FOREIGN KEY (book_id) REFERENCES Book(book_id)
             )
         """)
@@ -604,7 +607,7 @@ def init_db():
                 payment_method ENUM('Credit Card', 'PayPal', 'Bank Transfer'),
                 payment_date DATE NOT NULL,
                 amount DECIMAL(10, 2),
-                FOREIGN KEY (order_id) REFERENCES `Order`(order_id)
+                FOREIGN KEY (order_id) REFERENCES Orderss(order_id)
             )
         """)
 
@@ -616,7 +619,7 @@ def init_db():
                 shipment_date DATE,
                 delivery_status ENUM('Pending', 'Shipped', 'Delivered', 'Cancelled'),
                 address_id INT,
-                FOREIGN KEY (order_id) REFERENCES `Order`(order_id),
+                FOREIGN KEY (order_id) REFERENCES Orderss(order_id),
                 FOREIGN KEY (address_id) REFERENCES Address(address_id)
             )
         """)
