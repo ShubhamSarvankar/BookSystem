@@ -484,7 +484,7 @@ def order_confirmation(order_id):
 def admin_dashboard():
     try:
         cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM Orders")  # Fetch all orders for admin view
+        cur.execute("SELECT * FROM Orderss")  # Fetch all orders for admin view
         orders = cur.fetchall()
         cur.close()
         return render_template('admin_dashboard.html', orders=orders)
@@ -733,7 +733,7 @@ def update_customer(id):
 @app.route('/customers/<int:id>', methods=['DELETE'])
 def delete_customer(id):
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM Orders WHERE customer_id = %s", (id,))
+    cursor.execute("SELECT * FROM Orderss WHERE customer_id = %s", (id,))
     orders = cursor.fetchall()
     if orders:
         return jsonify({'error': 'Cannot delete customer with existing orders.'}), 400
@@ -752,7 +752,7 @@ def add_order():
 
     cursor = mysql.connection.cursor()
     query = """
-        INSERT INTO Orders (customer_id, order_date, total_amount)
+        INSERT INTO Orderss (customer_id, order_date, total_amount)
         VALUES (%s, %s, %s)
     """
     cursor.execute(query, (customer_id, order_date, total_amount))
@@ -766,7 +766,7 @@ def get_orders():
     cursor.execute("""
         SELECT o.order_id, o.order_date, o.total_amount, 
                c.customer_name, c.email 
-        FROM Orders o
+        FROM Orderss o
         JOIN Customers c ON o.customer_id = c.customer_id
     """)
     orders = cursor.fetchall()
@@ -779,7 +779,7 @@ def get_order(id):
     cursor.execute("""
         SELECT o.order_id, o.order_date, o.total_amount, 
                c.customer_name, c.email 
-        FROM Orders o
+        FROM Orderss o
         JOIN Customers c ON o.customer_id = c.customer_id
         WHERE o.order_id = %s
     """, (id,))
@@ -798,7 +798,7 @@ def update_order(id):
 
     cursor = mysql.connection.cursor()
     query = """
-        UPDATE Orders
+        UPDATE Orderss
         SET total_amount = %s, order_date = %s
         WHERE order_id = %s
     """
@@ -816,7 +816,7 @@ def delete_order(id):
     # Delete related transactions first
     cursor.execute("DELETE FROM Transactions WHERE order_id = %s", (id,))
     # Then delete the order
-    cursor.execute("DELETE FROM Orders WHERE order_id = %s", (id,))
+    cursor.execute("DELETE FROM Orderss WHERE order_id = %s", (id,))
     mysql.connection.commit()
     if cursor.rowcount > 0:
         return jsonify({'message': 'Order deleted successfully!'}), 200
@@ -848,7 +848,7 @@ def get_transactions():
         SELECT t.transaction_id, t.payment_method, t.payment_total_amount, 
                t.transaction_date, o.order_id, c.customer_name
         FROM Transactions t
-        JOIN Orders o ON t.order_id = o.order_id
+        JOIN Orderss o ON t.order_id = o.order_id
         JOIN Customers c ON o.customer_id = c.customer_id
     """)
     transactions = cursor.fetchall()
@@ -862,7 +862,7 @@ def get_transaction(id):
         SELECT t.transaction_id, t.payment_method, t.payment_total_amount, 
                t.transaction_date, o.order_id, c.customer_name
         FROM Transactions t
-        JOIN Orders o ON t.order_id = o.order_id
+        JOIN Orderss o ON t.order_id = o.order_id
         JOIN Customers c ON o.customer_id = c.customer_id
         WHERE t.transaction_id = %s
     """, (id,))
