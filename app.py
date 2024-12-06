@@ -480,25 +480,71 @@ def admin_login():
             flash("Invalid credentials, try again.", "danger")
     return render_template('admin_login.html')
 
-@app.route('/admin_dashboard')
+@app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
 
     try:
         cur = mysql.connection.cursor()
+
+        # Aggregate Earnings for a Date Range
+        total_profit = 0
+        if request.method == 'POST':
+            from_date = request.form.get('from_date')
+            to_date = request.form.get('to_date')
+            if from_date and to_date:
+                cur.execute("""
+                    SELECT SUM(o.total_amount)
+                    FROM Orderss o
+                    WHERE o.order_status = 'Completed'
+                    AND o.order_date BETWEEN %s AND %s
+                """, (from_date, to_date))
+                total_profit = cur.fetchone()[0] or 0
+
+        # Best Selling Genre
         cur.execute("""
-            SELECT SUM(profit) AS total_profit 
-            FROM Orderss
+            SELECT b.genre, SUM(oi.quantity * oi.unit_price) AS genre_profit
+            FROM Order_Item oi
+            JOIN Orderss o ON oi.order_id = o.order_id
+            JOIN Book b ON oi.book_id = b.book_id
+            WHERE o.order_status = 'Completed'
+            GROUP BY b.genre
+            ORDER BY genre_profit DESC
+            LIMIT 1
         """)
-        total_profit = cur.fetchone()[0]
+        best_selling_genre = cur.fetchone()
+        best_selling_genre_name = best_selling_genre[0] if best_selling_genre else 'N/A'
+        best_selling_genre_profit = best_selling_genre[1] if best_selling_genre else 0
+
+        # Most Valued Customer
+        cur.execute("""
+            SELECT c.customer_name, SUM(o.total_amount) AS total_spent
+            FROM Orderss o
+            JOIN Customer c ON o.customer_id = c.customer_id
+            WHERE o.order_status = 'Completed'
+            GROUP BY c.customer_name
+            ORDER BY total_spent DESC
+            LIMIT 1
+        """)
+        most_valued_customer = cur.fetchone()
+        most_valued_customer_name = most_valued_customer[0] if most_valued_customer else 'N/A'
+        most_valued_customer_spent = most_valued_customer[1] if most_valued_customer else 0
+
         cur.close()
 
-        total_profit = total_profit if total_profit else 0
-        return render_template('admin_dashboard.html', total_profit=total_profit)
-
+        return render_template(
+            'admin_dashboard.html',
+            total_profit=total_profit,
+            best_selling_genre_name=best_selling_genre_name,
+            best_selling_genre_profit=best_selling_genre_profit,
+            most_valued_customer_name=most_valued_customer_name,
+            most_valued_customer_spent=most_valued_customer_spent
+        )
     except Exception as e:
         print(f"Error in admin_dashboard: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
 
 @app.route('/logout')

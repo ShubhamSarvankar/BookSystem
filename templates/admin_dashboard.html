@@ -9,8 +9,46 @@
 <body>
     <div class="container mt-5">
         <h1>Admin Dashboard</h1>
-        <div class="alert alert-info">
-            <h3>Total Profit: ${{ total_profit }}</h3>
+        
+        <!-- Total Profit Section -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3>Total Earnings</h3>
+                <form method="POST" class="mb-3">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <label for="from_date" class="form-label">From Date</label>
+                            <input type="date" name="from_date" id="from_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="to_date" class="form-label">To Date</label>
+                            <input type="date" name="to_date" id="to_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-2 align-self-end">
+                            <button type="submit" class="btn btn-primary">Calculate</button>
+                        </div>
+                    </div>
+                </form>
+                <h4>Total Profit: ${{ total_profit }}</h4>
+            </div>
+        </div>
+
+        <!-- Best Selling Genre Section -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3>Best Selling Genre</h3>
+                <p><strong>Genre:</strong> {{ best_selling_genre_name }}</p>
+                <p><strong>Total Profit:</strong> ${{ best_selling_genre_profit }}</p>
+            </div>
+        </div>
+
+        <!-- Most Valued Customer Section -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3>Most Valued Customer</h3>
+                <p><strong>Customer Name:</strong> {{ most_valued_customer_name }}</p>
+                <p><strong>Total Spent:</strong> ${{ most_valued_customer_spent }}</p>
+            </div>
         </div>
     </div>
 </body>
