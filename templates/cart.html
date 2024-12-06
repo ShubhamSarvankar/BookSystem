@@ -1,133 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping Cart - Book Haven</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="/">Book Haven</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/products">Catalog</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/cart">Cart</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+@app.route('/cart')
+def cart():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    try:
+        user_id = session['user_id']
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT b.title, c.quantity, b.price, (c.quantity * b.price) AS subtotal
+            FROM Cart c
+            JOIN Book b ON c.book_id = b.book_id
+            WHERE c.customer_id = %s
+        """, (user_id,))
+        cart_items = cur.fetchall()
+        cur.close()
 
-    <!-- Cart Header -->
-    <div class="container my-5">
-        <h1 class="display-5 text-center">Your Shopping Cart</h1>
-        <p class="text-muted text-center">Review your selected books and proceed to checkout.</p>
-    </div>
+        total = sum(item[3] for item in cart_items)  # Calculate total price
+        formatted_items = [
+            {
+                "title": item[0],
+                "quantity": item[1],
+                "price": item[2],
+                "subtotal": item[3]
+            }
+            for item in cart_items
+        ]
 
-    <!-- Cart Table -->
-    <div class="container">
-        {% if cart_items %}
-        <table class="table table-bordered">
-            <thead class="table-light">
-                <tr>
-                    <th>Book</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Total</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in cart_items %}
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <img src="{{ item.image_url }}" alt="{{ item.title }}" class="img-thumbnail me-3" style="width: 50px;">
-                            <span>{{ item.title }}</span>
-                        </div>
-                    </td>
-                    <td>${{ item.price }}</td>
-                    <td>
-                        <input type="number" class="form-control" value="{{ item.quantity }}" min="1" onchange="updateQuantity('{{ item.id }}', this.value)">
-                    </td>
-                    <td>${{ item.price * item.quantity }}</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" onclick="removeFromCart('{{ item.id }}')">Remove</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>            
-        </table>
-        <div class="d-flex justify-content-between align-items-center mt-4">
-            <h4>Total: ${{ cart_total }}</h4>
-            <a href="/checkout" class="btn btn-success btn-lg">Proceed to Checkout</a>
-        </div>
-        {% else %}
-        <p class="text-center text-muted">Your cart is empty. <a href="/products">Browse books</a> to add items to your cart.</p>
-        {% endif %}
-    </div>
-
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4 mt-5">
-        <div class="container text-center">
-            <p class="mb-1">&copy; 2024 Book Haven. All rights reserved.</p>
-            <small>Designed with care for book lovers.</small>
-        </div>
-    </footer>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script>
-        function updateQuantity(itemId, quantity) {
-            fetch('/cart/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ item_id: itemId, quantity: quantity })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.error || 'Failed to update quantity.');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        function removeFromCart(itemId) {
-            fetch('/cart/remove', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ item_id: itemId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.error || 'Failed to remove item.');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-    </script>
-</body>
-</html>
+        return render_template('cart.html', cart_items=formatted_items, total=total)
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": str(e)})
