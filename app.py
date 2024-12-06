@@ -448,55 +448,18 @@ def order_confirmation(order_id):
         return redirect(url_for('login'))
 
     try:
-        print(f"Fetching order details for order_id: {order_id}")
+        print(f"Processing order confirmation for order_id: {order_id}")
 
-        # Connect to the database and fetch data
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT 
-                o.order_id, 
-                o.order_date, 
-                o.total_amount, 
-                oi.book_id, 
-                b.title, 
-                oi.quantity, 
-                oi.unit_price
-            FROM Orderss o
-            JOIN Order_Item oi ON o.order_id = oi.order_id
-            JOIN Book b ON oi.book_id = b.book_id
-            WHERE o.order_id = %s
-        """, (order_id,))
-        raw_order_details = cur.fetchall()
-        cur.close()
-
-        # Validate data
-        if not raw_order_details:
-            print(f"No order details found for order_id: {order_id}")
-            return "Order not found", 404
-
-        # Convert the raw results into dictionaries
-        order_metadata = {
-            "order_id": raw_order_details[0][0],
-            "order_date": raw_order_details[0][1],
-            "total_amount": float(raw_order_details[0][2]),  # Convert Decimal to float
+        # Simple order confirmation message
+        confirmation_data = {
+            "order_id": order_id,
+            "message": "Your order has been successfully confirmed!"
         }
-        items = [
-            {
-                "book_id": row[3],
-                "title": row[4],
-                "quantity": row[5],
-                "unit_price": float(row[6]),  # Convert Decimal to float
-            }
-            for row in raw_order_details
-        ]
 
-        # Final formatted order data
-        formatted_order = {**order_metadata, "items": items}
+        print(f"Confirmation data: {confirmation_data}")
 
-        print(f"Formatted order: {formatted_order}")
-
-        # Pass data to the template
-        return render_template('order_confirmation.html', order=formatted_order)
+        # Pass the confirmation message to the template
+        return render_template('order_confirmation.html', order=confirmation_data)
 
     except Exception as e:
         # Log the error for debugging
