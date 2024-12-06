@@ -43,29 +43,40 @@
         </div>
     </header>
 
-    <!-- Featured Books Section -->
     <section class="featured-books py-5">
         <div class="container">
             <h2 class="text-center fw-bold mb-4">Featured Books</h2>
             <div class="row">
-                {% for book in books %}
-                <div class="col-md-4">
-                    <div class="card book-card">
-                        <img src="{{ url_for('static', filename='images/default_book_cover.jpg') }}" 
-                             class="card-img-top" alt="{{ book.title }}">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ book.title }}</h5>
-                            <p class="card-text">By {{ book.author }}</p>
-                            <p class="card-text text-primary fw-bold">${{ book.price }}</p>
-                            <a href="/book/{{ book.id }}" class="btn btn-outline-primary w-100">View Details</a>
+                {% if books %}
+                    {% for book in books %}
+                    <div class="col-md-4">
+                        <div class="card book-card">
+                            <!-- Book Image -->
+                            <div class="placeholder-img">
+                                <img 
+                                    src="{{ url_for('static', filename='images/default_book_cover.jpg') }}" 
+                                    class="card-img-top" 
+                                    alt="{{ book.title }}"
+                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                                >
+                                <div class="grey-square" style="display:none;"></div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">{{ book.title }}</h5>
+                                <p class="card-text">By {{ book.author }}</p>
+                                <p class="card-text text-primary fw-bold">${{ book.price }}</p>
+                                <a href="/book/{{ book.id }}" class="btn btn-outline-primary w-100">View Details</a>
+                            </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center">No bestselling books available at the moment.</p>
+                {% endif %}
             </div>
         </div>
     </section>
-    
+        
     <!-- Footer -->
     <footer class="bg-dark text-white py-4">
         <div class="container text-center">

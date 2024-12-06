@@ -47,7 +47,10 @@ def home():
         books = cur.fetchall()
         cur.close()
         
-        # Transform data into a list of dictionaries for template rendering
+        # Debugging: Print the fetched books
+        print("Books fetched:", books)
+
+        # Transform data for rendering
         books_data = [
             {
                 "id": book[0],
@@ -60,9 +63,13 @@ def home():
             }
             for book in books
         ]
-        
+
+        # Debugging: Print the data being sent to the template
+        print("Books Data Sent to Template:", books_data)
+
         return render_template('index.html', books=books_data)
     except Exception as e:
+        print("Error:", str(e))
         return jsonify({"error": str(e)})
 
 # Book Catalog
