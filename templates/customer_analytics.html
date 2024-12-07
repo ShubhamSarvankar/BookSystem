@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Roboto', sans-serif;
+        }
+        .analytics-container {
+            max-width: 900px;
+            margin: 50px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            overflow: hidden;
+        }
+        .table {
+            margin: 20px 0;
+        }
+        .table thead {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .table tbody tr:hover {
+            background-color: #f1f5fa;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #007bff;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .metric-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .btn-back {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 50px;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .btn-back:hover {
+            background-color: #0056b3;
+        }
+        @media (max-width: 768px) {
+            .table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="analytics-container">
+        <h1>Customer Analytics</h1>
+        <p class="metric-info">A comparison and analysis of Individual and Business customers based on key metrics.</p>
+        <table class="table table-bordered text-center">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Individual Customers</th>
+                    <th>Business Customers</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Total Profits</td>
+                    <td>${{ analytics.profits['Individual'] }}</td>
+                    <td>${{ analytics.profits['Business'] }}</td>
+                </tr>
+                <tr>
+                    <td>Number of Customers</td>
+                    <td>{{ analytics.customer_counts['Individual'] }}</td>
+                    <td>{{ analytics.customer_counts['Business'] }}</td>
+                </tr>
+                <tr>
+                    <td>Popular Books</td>
+                    <td>{{ analytics.popular_books[0][1] }}</td>
+                    <td>{{ analytics.popular_books[1][1] }}</td>
+                </tr>
+                <tr>
+                    <td>Popular Genres</td>
+                    <td>{{ analytics.popular_genres[0][1] }}</td>
+                    <td>{{ analytics.popular_genres[1][1] }}</td>
+                </tr>
+                <tr>
+                    <td>Average Spending Per Order</td>
+                    <td>${{ analytics.avg_spending['Individual'] }}</td>
+                    <td>${{ analytics.avg_spending['Business'] }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="text-center">
+            <a href="/admin_dashboard" class="btn-back">Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

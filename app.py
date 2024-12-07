@@ -467,7 +467,51 @@ def order_confirmation(order_id):
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
-    
+
+@app.route('/order_history')
+def order_history():
+    if 'user_id' not in session:
+        flash("Please log in to view your order history.", "warning")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    try:
+        cur = mysql.connection.cursor()
+
+        # Fetch order history for the logged-in user
+        query = """
+            SELECT o.order_id, o.order_date, o.order_status, o.total_amount, 
+                   GROUP_CONCAT(CONCAT(oi.quantity, ' x ', b.title) SEPARATOR '<br>') AS items
+            FROM Orderss o
+            JOIN Order_Item oi ON o.order_id = oi.order_id
+            JOIN Book b ON oi.book_id = b.book_id
+            WHERE o.customer_id = %s
+            GROUP BY o.order_id
+            ORDER BY o.order_date DESC
+        """
+        cur.execute(query, (user_id,))
+        orders = cur.fetchall()
+        cur.close()
+
+        # Transform orders for rendering
+        order_data = [
+            {
+                "order_id": order[0],
+                "order_date": order[1].strftime('%Y-%m-%d'),
+                "order_status": order[2],
+                "total_amount": order[3],
+                "items": order[4]
+            }
+            for order in orders
+        ]
+
+        return render_template('order_history.html', orders=order_data)
+    except Exception as e:
+        print("Error fetching order history:", e)
+        flash("An error occurred while fetching your order history.", "danger")
+        return redirect(url_for('home'))
+
+
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -546,6 +590,92 @@ def admin_dashboard():
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+
+@app.route('/customer_analytics')
+def customer_analytics():
+    if not session.get('is_admin'):
+        flash("Admin access required.", "danger")
+        return redirect(url_for('admin_login'))
+
+    try:
+        cur = mysql.connection.cursor()
+
+        # Total profits by customer type
+        query1 = """
+            SELECT c.customer_type, SUM(o.total_amount) AS total_profits
+            FROM Customer c
+            JOIN Orderss o ON c.customer_id = o.customer_id
+            WHERE o.order_status = 'Completed'
+            GROUP BY c.customer_type
+        """
+        cur.execute(query1)
+        profits = {row[0]: row[1] for row in cur.fetchall()}
+
+        # Number of customers by type
+        query2 = """
+            SELECT customer_type, COUNT(*) AS num_customers
+            FROM Customer
+            GROUP BY customer_type
+        """
+        cur.execute(query2)
+        customer_counts = {row[0]: row[1] for row in cur.fetchall()}
+
+        # Popular books for each type
+        query3 = """
+            SELECT c.customer_type, b.title, COUNT(oi.book_id) AS total_sales
+            FROM Customer c
+            JOIN Orderss o ON c.customer_id = o.customer_id
+            JOIN Order_Item oi ON o.order_id = oi.order_id
+            JOIN Book b ON oi.book_id = b.book_id
+            WHERE o.order_status = 'Completed'
+            GROUP BY c.customer_type, b.title
+            ORDER BY total_sales DESC
+            LIMIT 2
+        """
+        cur.execute(query3)
+        popular_books = cur.fetchall()
+
+        # Popular genres for each type
+        query4 = """
+            SELECT c.customer_type, b.genre, COUNT(oi.book_id) AS total_sales
+            FROM Customer c
+            JOIN Orderss o ON c.customer_id = o.customer_id
+            JOIN Order_Item oi ON o.order_id = oi.order_id
+            JOIN Book b ON oi.book_id = b.book_id
+            WHERE o.order_status = 'Completed'
+            GROUP BY c.customer_type, b.genre
+            ORDER BY total_sales DESC
+            LIMIT 2
+        """
+        cur.execute(query4)
+        popular_genres = cur.fetchall()
+
+        # Average spending per order for each type
+        query5 = """
+            SELECT c.customer_type, AVG(o.total_amount) AS avg_spending
+            FROM Customer c
+            JOIN Orderss o ON c.customer_id = o.customer_id
+            WHERE o.order_status = 'Completed'
+            GROUP BY c.customer_type
+        """
+        cur.execute(query5)
+        avg_spending = {row[0]: row[1] for row in cur.fetchall()}
+
+        cur.close()
+
+        # Combine the data for rendering
+        analytics = {
+            "profits": profits,
+            "customer_counts": customer_counts,
+            "popular_books": popular_books,
+            "popular_genres": popular_genres,
+            "avg_spending": avg_spending,
+        }
+        return render_template('customer_analytics.html', analytics=analytics)
+    except Exception as e:
+        print("Error fetching customer analytics:", e)
+        flash("Error fetching analytics. Please try again later.", "danger")
+        return redirect(url_for('admin_dashboard'))
 
 @app.route('/logout')
 def logout():
@@ -716,291 +846,6 @@ def init_db():
         return "Database initialized successfully with all 12 tables!"
     except Exception as e:
         return jsonify({"error": str(e)})
-
-# Create Customer
-@app.route('/customers', methods=['POST'])
-def add_customer():
-    data = request.json
-    email = data['email']
-    phone = data['phone']
-
-    if not is_valid_email(email):
-        return jsonify({'error': 'Invalid email format'}), 400
-
-    if not is_valid_phone(phone):
-        return jsonify({'error': 'Phone number must be 10 digits'}), 400
-
-    # Proceed with adding customer
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM Customers WHERE email = %s", (email,))
-    if cursor.fetchone():
-        return jsonify({'error': 'Email already exists'}), 400
-
-    query = """
-        INSERT INTO Customers (customer_name, email, phone, address)
-        VALUES (%s, %s, %s, %s)
-    """
-    cursor.execute(query, (
-        data['customer_name'], 
-        email, 
-        phone, 
-        data['address']
-    ))
-    mysql.connection.commit()
-    return jsonify({'message': 'Customer added successfully!'}), 201
-
-# Retrieve All Customers
-@app.route('/customers', methods=['GET'])
-def get_customers():
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM Customers")
-    customers = cursor.fetchall()
-    return jsonify(customers), 200
-
-# Retrieve Single Customer by ID
-@app.route('/customers/<int:id>', methods=['GET'])
-def get_customer(id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM Customers WHERE customer_id = %s", (id,))
-    customer = cursor.fetchone()
-    if customer:
-        return jsonify(customer), 200
-    else:
-        return jsonify({'message': 'Customer not found'}), 404
-
-# Update Customer
-@app.route('/customers/<int:id>', methods=['PUT'])
-def update_customer(id):
-    data = request.json
-    name = data.get('customer_name')
-    email = data.get('email')
-    phone = data.get('phone')
-    address = data.get('address')
-
-    cursor = mysql.connection.cursor()
-    query = """
-        UPDATE Customers 
-        SET customer_name = %s, email = %s, phone = %s, address = %s
-        WHERE customer_id = %s
-    """
-    cursor.execute(query, (name, email, phone, address, id))
-    mysql.connection.commit()
-    if cursor.rowcount > 0:
-        return jsonify({'message': 'Customer updated successfully!'}), 200
-    else:
-        return jsonify({'message': 'Customer not found'}), 404
-
-# Delete Customer
-@app.route('/customers/<int:id>', methods=['DELETE'])
-def delete_customer(id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM Orderss WHERE customer_id = %s", (id,))
-    orders = cursor.fetchall()
-    if orders:
-        return jsonify({'error': 'Cannot delete customer with existing orders.'}), 400
-    
-    cursor.execute("DELETE FROM Customers WHERE customer_id = %s", (id,))
-    mysql.connection.commit()
-    return jsonify({'message': 'Customer deleted successfully!'}), 200
-
-# Create Order
-@app.route('/orders', methods=['POST'])
-def add_order():
-    data = request.json
-    customer_id = data['customer_id']
-    order_date = data.get('order_date')  # Default to today if not provided
-    total_amount = data['total_amount']
-
-    cursor = mysql.connection.cursor()
-    query = """
-        INSERT INTO Orderss (customer_id, order_date, total_amount)
-        VALUES (%s, %s, %s)
-    """
-    cursor.execute(query, (customer_id, order_date, total_amount))
-    mysql.connection.commit()
-    return jsonify({'message': 'Order created successfully!'}), 201
-
-# Retrieve All Orders
-@app.route('/orders', methods=['GET'])
-def get_orders():
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT o.order_id, o.order_date, o.total_amount, 
-               c.customer_name, c.email 
-        FROM Orderss o
-        JOIN Customers c ON o.customer_id = c.customer_id
-    """)
-    orders = cursor.fetchall()
-    return jsonify(orders), 200
-
-# Retrieve Single Order by ID
-@app.route('/orders/<int:id>', methods=['GET'])
-def get_order(id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT o.order_id, o.order_date, o.total_amount, 
-               c.customer_name, c.email 
-        FROM Orderss o
-        JOIN Customers c ON o.customer_id = c.customer_id
-        WHERE o.order_id = %s
-    """, (id,))
-    order = cursor.fetchone()
-    if order:
-        return jsonify(order), 200
-    else:
-        return jsonify({'message': 'Order not found'}), 404
-
-# Update Order
-@app.route('/orders/<int:id>', methods=['PUT'])
-def update_order(id):
-    data = request.json
-    total_amount = data.get('total_amount')
-    order_date = data.get('order_date')
-
-    cursor = mysql.connection.cursor()
-    query = """
-        UPDATE Orderss
-        SET total_amount = %s, order_date = %s
-        WHERE order_id = %s
-    """
-    cursor.execute(query, (total_amount, order_date, id))
-    mysql.connection.commit()
-    if cursor.rowcount > 0:
-        return jsonify({'message': 'Order updated successfully!'}), 200
-    else:
-        return jsonify({'message': 'Order not found'}), 404
-
-# Delete Order
-@app.route('/orders/<int:id>', methods=['DELETE'])
-def delete_order(id):
-    cursor = mysql.connection.cursor()
-    # Delete related transactions first
-    cursor.execute("DELETE FROM Transactions WHERE order_id = %s", (id,))
-    # Then delete the order
-    cursor.execute("DELETE FROM Orderss WHERE order_id = %s", (id,))
-    mysql.connection.commit()
-    if cursor.rowcount > 0:
-        return jsonify({'message': 'Order deleted successfully!'}), 200
-    else:
-        return jsonify({'message': 'Order not found'}), 404
-
-# Create Transaction
-@app.route('/transactions', methods=['POST'])
-def add_transaction():
-    data = request.json
-    order_id = data['order_id']
-    payment_method = data['payment_method']
-    payment_total_amount = data['payment_total_amount']
-
-    cursor = mysql.connection.cursor()
-    query = """
-        INSERT INTO Transactions (order_id, payment_method, payment_total_amount)
-        VALUES (%s, %s, %s)
-    """
-    cursor.execute(query, (order_id, payment_method, payment_total_amount))
-    mysql.connection.commit()
-    return jsonify({'message': 'Transaction recorded successfully!'}), 201
-
-# Retrieve All Transactions
-@app.route('/transactions', methods=['GET'])
-def get_transactions():
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT t.transaction_id, t.payment_method, t.payment_total_amount, 
-               t.transaction_date, o.order_id, c.customer_name
-        FROM Transactions t
-        JOIN Orderss o ON t.order_id = o.order_id
-        JOIN Customers c ON o.customer_id = c.customer_id
-    """)
-    transactions = cursor.fetchall()
-    return jsonify(transactions), 200
-
-# Retrieve Single Transaction by ID
-@app.route('/transactions/<int:id>', methods=['GET'])
-def get_transaction(id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT t.transaction_id, t.payment_method, t.payment_total_amount, 
-               t.transaction_date, o.order_id, c.customer_name
-        FROM Transactions t
-        JOIN Orderss o ON t.order_id = o.order_id
-        JOIN Customers c ON o.customer_id = c.customer_id
-        WHERE t.transaction_id = %s
-    """, (id,))
-    transaction = cursor.fetchone()
-    if transaction:
-        return jsonify(transaction), 200
-    else:
-        return jsonify({'message': 'Transaction not found'}), 404
-
-# Delete Transaction
-@app.route('/transactions/<int:id>', methods=['DELETE'])
-def delete_transaction(id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("DELETE FROM Transactions WHERE transaction_id = %s", (id,))
-    mysql.connection.commit()
-    if cursor.rowcount > 0:
-        return jsonify({'message': 'Transaction deleted successfully!'}), 200
-    else:
-        return jsonify({'message': 'Transaction not found'}), 404
-
-# Fetch all products
-@app.route('/products', methods=['GET'])
-def get_products():
-    try:
-        cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM Products")
-        rows = cur.fetchall()
-        cur.close()
-        return jsonify(rows)
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-# Add a new product
-@app.route('/products', methods=['POST'])
-def add_product():
-    data = request.get_json()
-    try:
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            INSERT INTO Products (product_name, price, inventory, category)
-            VALUES (%s, %s, %s, %s)
-        """, (data['product_name'], data['price'], data['inventory'], data['category']))
-        mysql.connection.commit()
-        cur.close()
-        return jsonify({"message": "Product added successfully!"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-# Update a product
-@app.route('/products/<int:product_id>', methods=['PUT'])
-def update_product(product_id):
-    data = request.get_json()
-    try:
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            UPDATE Products
-            SET product_name = %s, price = %s, inventory = %s, category = %s
-            WHERE product_id = %s
-        """, (data['product_name'], data['price'], data['inventory'], data['category'], product_id))
-        mysql.connection.commit()
-        cur.close()
-        return jsonify({"message": "Product updated successfully!"})
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-# Delete a product
-@app.route('/products/<int:product_id>', methods=['DELETE'])
-def delete_product(product_id):
-    try:
-        cur = mysql.connection.cursor()
-        cur.execute("DELETE FROM Products WHERE product_id = %s", (product_id,))
-        mysql.connection.commit()
-        cur.close()
-        return jsonify({"message": "Product deleted successfully!"})
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
