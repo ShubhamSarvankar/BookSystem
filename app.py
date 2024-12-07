@@ -88,11 +88,11 @@ def search():
     try:
         cur = mysql.connection.cursor()
 
-        # Fetch all available genres dynamically
-        cur.execute("SELECT DISTINCT genre FROM Book")
+        # Fetch all available genres dynamically, filtering out NULL or empty values
+        cur.execute("SELECT DISTINCT genre FROM Book WHERE genre IS NOT NULL AND genre != '' ORDER BY genre ASC")
         genres = [row[0] for row in cur.fetchall()]
 
-        # Base query
+        # Base query for fetching books
         search_query = """
             SELECT book_id, title, author, genre, price, cover_image
             FROM Book
@@ -110,7 +110,8 @@ def search():
             search_query += " AND genre = %s"
             params.append(genre)
 
-        cur.execute(search_query, params)  # Execute the dynamic query
+        # Execute the book search query
+        cur.execute(search_query, params)
         books = cur.fetchall()  # Fetch matching books
         cur.close()
 
