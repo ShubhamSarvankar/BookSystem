@@ -82,28 +82,40 @@ def home():
 
 @app.route('/search', methods=['GET'])
 def search():
-    query = request.args.get('query', '').strip()
-    if query:
-        try:
-            cur = mysql.connection.cursor()
-            search_query = """
-                SELECT book_id, title, author, genre, price 
-                FROM Book 
-                WHERE title LIKE %s OR author LIKE %s
-            """
-            like_query = f"%{query}%"
-            cur.execute(search_query, (like_query, like_query))
-            books = cur.fetchall()  # Fetch matching books
-            cur.close()
+    query = request.args.get('query', '').strip()  # Get the search query
+    genre = request.args.get('genre', '').strip()  # Get the selected genre
 
-            # Pass books and query to the template
-            return render_template('products.html', books=books, query=query)
-        except Exception as e:
-            print("Search Error:", e)
-            return jsonify({"error": str(e)}), 500
-    else:
-        # If no query, return an empty result
-        return render_template('products.html', books=[], query=query)
+    try:
+        cur = mysql.connection.cursor()
+
+        # Base query
+        search_query = """
+            SELECT book_id, title, author, genre, price 
+            FROM Book
+            WHERE 1=1
+        """
+        params = []
+
+        # Add search conditions dynamically
+        if query:
+            search_query += " AND (title LIKE %s OR author LIKE %s)"
+            like_query = f"%{query}%"
+            params.extend([like_query, like_query])
+
+        if genre:
+            search_query += " AND genre = %s"
+            params.append(genre)
+
+        cur.execute(search_query, params)  # Execute the dynamic query
+        books = cur.fetchall()  # Fetch matching books
+        cur.close()
+
+        # Pass books, query, and genre to the template
+        return render_template('products.html', books=books, query=query, genre=genre)
+    except Exception as e:
+        print("Search Error:", e)
+        return jsonify({"error": str(e)}), 500
+
 
 # Book Catalog
 @app.route('/catalog')
@@ -213,17 +225,17 @@ def book_details(book_id):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # Common Fields
         name = request.form.get('name')
         email = request.form.get('email')
         password = request.form.get('password')
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')  # Hash the password
-        customer_type = 'Individual'  # Assuming individual registration here
+        customer_type = request.form.get('customer_type')  # Get the customer type
         address_details = {
-            'street': request.form.get('street'),
+            'street': request.form.get('address'),
             'city': request.form.get('city'),
             'state': request.form.get('state'),
             'zip': request.form.get('zip'),
-            'country': request.form.get('country'),
             'address_type': 'Home',  # Defaulting to Home
         }
 
@@ -239,8 +251,8 @@ def register():
 
             # Insert address details
             address_query = """
-                INSERT INTO Address (customer_id, street, city, state, zip, country, address_type)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO Address (customer_id, street, city, state, zip, address_type)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """
             cur.execute(address_query, (
                 customer_id,
@@ -248,15 +260,38 @@ def register():
                 address_details['city'],
                 address_details['state'],
                 address_details['zip'],
-                address_details['country'],
                 address_details['address_type']
             ))
 
+            # Handle Individual Customer
+            if customer_type == 'individual':
+                age = request.form.get('age')
+                gender = request.form.get('gender')
+                marital_status = request.form.get('marital_status')
+
+                individual_query = """
+                    INSERT INTO Individual_Customer (customer_id, age, gender, marital_status)
+                    VALUES (%s, %s, %s, %s)
+                """
+                cur.execute(individual_query, (customer_id, age, gender, marital_status))
+
+            # Handle Business Customer
+            elif customer_type == 'business':
+                business_category = request.form.get('business_category')
+                gross_income = request.form.get('gross_income')
+
+                business_query = """
+                    INSERT INTO Business_Customer (customer_id, business_category, gross_income)
+                    VALUES (%s, %s, %s)
+                """
+                cur.execute(business_query, (customer_id, business_category, gross_income))
+
+            # Commit transaction and close the cursor
             mysql.connection.commit()
             cur.close()
 
             flash("Registration successful! Please log in.", "success")
-            return redirect('/register')  # Stay on the register page with a success message
+            return redirect('/login')  # Redirect to login after successful registration
         except Exception as e:
             print("Registration Error:", e)
             flash("An error occurred during registration. Please try again.", "danger")

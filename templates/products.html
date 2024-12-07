@@ -4,14 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results</title>
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #0d6efd;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .card img {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            max-height: 250px;
+            object-fit: cover;
+        }
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .card-text {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .btn-primary {
+            border-radius: 20px;
+            background-color: #0d6efd;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        footer {
+            background-color: #343a40;
+            color: white;
+        }
+        footer p {
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="/">Book Haven</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
@@ -24,35 +73,44 @@
 
     <!-- Search Results Section -->
     <div class="container my-5">
-        <h2 class="text-center mb-4">Search Results</h2>
-        <div id="results-message" class="text-center text-muted mb-5">
+        <h2 class="text-center fw-bold mb-4">Search Results</h2>
+        <div id="results-message" class="text-center text-muted mb-4">
             {% if books %}
-                <p>Showing results for "{{ query }}"</p>
+                <p>Results for "{{ query }}" {% if genre %} in genre "{{ genre }}"{% endif %}</p>
             {% else %}
-                <p>No results found for "{{ query }}". Try searching for another book or author.</p>
+                <p>No results found for "{{ query }}" {% if genre %} in genre "{{ genre }}"{% endif %}. Try searching for another book or author.</p>
             {% endif %}
         </div>
+
         <div class="row">
-            {% for book in books %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title text-center">{{ book[1] }}</h5> <!-- Title -->
-                        <p class="text-center text-muted small">by {{ book[2] }}</p> <!-- Author -->
-                        <p class="text-center text-muted small">Genre: {{ book[3] }}</p> <!-- Genre -->
-                        <p class="text-center fw-bold text-success">${{ book[4] }}</p> <!-- Price -->
-                        <a href="/book/{{ book[0] }}" class="btn btn-primary mt-auto">View Details</a> <!-- Link -->
+            {% if books %}
+                {% for book in books %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <img src="{{ book.cover_image or url_for('static', filename='images/default_cover.jpg') }}" class="card-img-top" alt="{{ book[1] }}">
+                        <div class="card-body">
+                            <h5 class="card-title text-center">{{ book[1] }}</h5> <!-- Title -->
+                            <p class="card-text text-center text-muted small">By {{ book[2] }}</p> <!-- Author -->
+                            <p class="card-text text-center text-muted small">Genre: {{ book[3] }}</p> <!-- Genre -->
+                            <p class="card-text text-center fw-bold text-success">${{ book[4] }}</p> <!-- Price -->
+                            <a href="/book/{{ book[0] }}" class="btn btn-primary d-block mt-2">View Details</a>
+                        </div>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
+                {% endfor %}
+            {% endif %}
         </div>
     </div>
 
-    <footer class="bg-light text-center">
-        <div class="container p-4">
+    <!-- Footer -->
+    <footer class="py-4">
+        <div class="container text-center">
             <p>&copy; 2024 Book Haven. All rights reserved.</p>
+            <small>Designed with care for book lovers.</small>
         </div>
     </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

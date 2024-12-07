@@ -6,19 +6,27 @@
     <title>Register</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script>
+        function toggleCustomerFields(customerType) {
+            const individualFields = document.getElementById('individual-fields');
+            const businessFields = document.getElementById('business-fields');
+            
+            if (customerType === 'individual') {
+                individualFields.classList.remove('hidden');
+                businessFields.classList.add('hidden');
+            } else if (customerType === 'business') {
+                individualFields.classList.add('hidden');
+                businessFields.classList.remove('hidden');
+            }
+        }
+    </script>
 </head>
 <body>
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
@@ -52,6 +60,55 @@
                         <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="password" name="password" required placeholder="Create a password">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Customer Type</label>
+                        <div>
+                            <input type="radio" id="individual" name="customer_type" value="individual" required onclick="toggleCustomerFields('individual')">
+                            <label for="individual">Individual</label>
+                            <input type="radio" id="business" name="customer_type" value="business" required onclick="toggleCustomerFields('business')" class="ms-3">
+                            <label for="business">Business</label>
+                        </div>
+                    </div>
+
+                    <!-- Individual Customer Fields -->
+                    <div id="individual-fields" class="hidden">
+                        <div class="mb-3">
+                            <label for="age" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="age" name="age" placeholder="Enter your age">
+                        </div>
+                        <div class="mb-3">
+                            <label for="gender" class="form-label">Gender</label>
+                            <select class="form-select" id="gender" name="gender">
+                                <option value="" selected disabled>Select your gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="marital_status" class="form-label">Marital Status</label>
+                            <select class="form-select" id="marital_status" name="marital_status">
+                                <option value="" selected disabled>Select your marital status</option>
+                                <option value="single">Single</option>
+                                <option value="married">Married</option>
+                                <option value="divorced">Divorced</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Business Customer Fields -->
+                    <div id="business-fields" class="hidden">
+                        <div class="mb-3">
+                            <label for="business_category" class="form-label">Business Category</label>
+                            <input type="text" class="form-control" id="business_category" name="business_category" placeholder="Enter your business category">
+                        </div>
+                        <div class="mb-3">
+                            <label for="gross_income" class="form-label">Gross Income</label>
+                            <input type="number" class="form-control" id="gross_income" name="gross_income" placeholder="Enter your gross income">
+                        </div>
+                    </div>
+
+                    <!-- Address Fields -->
                     <div class="mb-3">
                         <label for="address" class="form-label">Address</label>
                         <input type="text" class="form-control" id="address" name="address" required placeholder="Enter your address">
