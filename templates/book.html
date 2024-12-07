@@ -6,8 +6,54 @@
     <title>{{ book.title }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Roboto', sans-serif;
+        }
+        h1, h3 {
+            color: #0d6efd; /* Primary blue */
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .img-fluid {
+            max-height: 400px;
+            object-fit: cover;
+        }
+        .list-group-item {
+            background-color: #ffffff; /* White background */
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 15px;
+        }
+        .list-group-item p {
+            margin-bottom: 0;
+        }
+        .review-form {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        footer {
+            background-color: #0d6efd;
+            color: white;
+            padding: 20px 0;
+        }
+        footer p {
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="/">Book Store</a>
@@ -17,7 +63,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
-                    {% if session['user_id'] %}
+                    {% if session.get('user_id') %}
                         <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
@@ -41,6 +87,7 @@
         {% endwith %}
     </div>
 
+    <!-- Book Details -->
     <div class="container mt-5">
         <div class="row">
             <div class="col-md-5">
@@ -78,13 +125,40 @@
         {% else %}
             <p>No reviews yet. Be the first to review this book!</p>
         {% endif %}
+
+        <!-- Add Review Form -->
+        {% if session.get('user_id') %}
+            {% if has_ordered %}
+                <hr class="my-5">
+                <h4>Submit Your Review</h4>
+                <div class="review-form">
+                    <form action="/book/{{ book.book_id }}/review" method="POST">
+                        <div class="mb-3">
+                            <label for="ranking" class="form-label">Rating (1-5)</label>
+                            <input type="number" class="form-control" id="ranking" name="ranking" min="1" max="5" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="review_text" class="form-label">Your Review</label>
+                            <textarea class="form-control" id="review_text" name="review_text" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                    </form>
+                </div>
+            {% else %}
+                <p class="text-muted">You need to order this book to leave a review.</p>
+            {% endif %}
+        {% else %}
+            <p class="text-muted">Please <a href="/login">log in</a> to leave a review.</p>
+        {% endif %}
     </div>
 
-    <footer class="bg-light text-center text-lg-start mt-5">
-        <div class="container p-4">
+    <!-- Footer -->
+    <footer>
+        <div class="container text-center">
             <p>&copy; 2024 Book Store. All rights reserved.</p>
         </div>
     </footer>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -139,23 +139,48 @@ def book_details(book_id):
         """, (book_id,))
         reviews = cur.fetchall()
 
+        has_ordered = False
+        if 'user_id' in session:
+            user_id = session['user_id']
+            
+            # Check if the logged-in user has ordered this book
+            cur.execute("""
+                SELECT COUNT(*) 
+                FROM Orderss o
+                JOIN Order_Item oi ON o.order_id = oi.order_id
+                WHERE o.customer_id = %s AND oi.book_id = %s AND o.order_status = 'Completed'
+            """, (user_id, book_id))
+            has_ordered = cur.fetchone()[0] > 0
+
         if request.method == 'POST':
             if 'user_id' not in session:
-                flash("Please log in to add items to your cart.", "warning")
+                flash("Please log in to add items to your cart or submit a review.", "warning")
                 return redirect(url_for('login'))
 
-            quantity = int(request.form.get('quantity', 1))
-            user_id = session['user_id']
+            if 'quantity' in request.form:
+                # Add to cart logic
+                quantity = int(request.form.get('quantity', 1))
+                cur.execute("""
+                    INSERT INTO Cart (customer_id, book_id, quantity)
+                    VALUES (%s, %s, %s)
+                    ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
+                """, (user_id, book_id, quantity))
+                mysql.connection.commit()
+                flash("Book successfully added to cart!", "success")
 
-            # Add to cart
-            cur.execute("""
-                INSERT INTO Cart (customer_id, book_id, quantity)
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
-            """, (user_id, book_id, quantity))
-            mysql.connection.commit()
-            flash("Book successfully added to cart!", "success")  # Add flash message
+            elif 'ranking' in request.form and 'review_text' in request.form:
+                # Submit review logic
+                ranking = int(request.form['ranking'])
+                review_text = request.form['review_text']
 
+                # Insert the review into the database
+                cur.execute("""
+                    INSERT INTO Review (book_id, customer_id, ranking, review_text, review_date)
+                    VALUES (%s, %s, %s, %s, NOW())
+                """, (book_id, user_id, ranking, review_text))
+                mysql.connection.commit()
+                flash("Your review has been submitted!", "success")
+        
         cur.close()
 
         if book:
@@ -172,7 +197,12 @@ def book_details(book_id):
                 {"review_text": r[0], "ranking": r[1], "customer_name": r[2]}
                 for r in reviews
             ]
-            return render_template('book.html', book=book_data, reviews=reviews_data)
+            return render_template(
+                'book.html', 
+                book=book_data, 
+                reviews=reviews_data, 
+                has_ordered=has_ordered
+            )
         else:
             return "Book not found", 404
     except Exception as e:
