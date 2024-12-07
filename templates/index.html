@@ -106,17 +106,23 @@
                 <div class="input-group">
                     <select name="genre" class="form-select">
                         <option value="" selected>All Genres</option>
-                        {% for genre in genres %}
-                            <option value="{{ genre }}">{{ genre }}</option>
-                        {% endfor %}
+                        {% if genres %}
+                            {% for genre in genres %}
+                                <option value="{{ genre }}" {% if genre == request.args.get('genre') %}selected{% endif %}>
+                                    {{ genre }}
+                                </option>
+                            {% endfor %}
+                        {% else %}
+                            <option disabled>No Genres Available</option>
+                        {% endif %}
                     </select>
-                    <input type="text" name="query" class="form-control" placeholder="Search for books or authors..." aria-label="Search">
+                    <input type="text" name="query" class="form-control" placeholder="Search for books or authors..." value="{{ query }}" aria-label="Search">
                     <button type="submit" class="btn btn-primary">Search</button>
                 </div>
             </form>
         </div>
     </header>
-        
+                
     <!-- Featured Books Section -->
     <section class="featured-books py-5">
         <div class="container">

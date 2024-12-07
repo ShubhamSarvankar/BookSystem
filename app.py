@@ -92,6 +92,9 @@ def search():
         cur.execute("SELECT DISTINCT genre FROM Book WHERE genre IS NOT NULL AND genre != '' ORDER BY genre ASC")
         genres = [row[0] for row in cur.fetchall()]
 
+        # Debugging: Print genres to ensure they are being fetched correctly
+        print("Fetched Genres:", genres)
+
         # Base query for fetching books
         search_query = """
             SELECT book_id, title, author, genre, price, cover_image
@@ -115,12 +118,14 @@ def search():
         books = cur.fetchall()  # Fetch matching books
         cur.close()
 
+        # Debugging: Print books fetched
+        print("Fetched Books:", books)
+
         # Pass books, query, and genres to the template
         return render_template('products.html', books=books, query=query, genre=genre, genres=genres)
     except Exception as e:
         print("Search Error:", e)
         return jsonify({"error": str(e)}), 500
-
 
 # Book Catalog
 @app.route('/catalog')
