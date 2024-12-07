@@ -90,24 +90,20 @@
             <h1 class="display-4 fw-bold">Welcome to Book Haven</h1>
             <p class="lead">Discover, explore, and shop the best books in one place.</p>
             <form action="/search" method="GET" class="search-form d-flex justify-content-center mt-4">
-                <input type="text" name="query" class="form-control w-50 me-2" placeholder="Search for books or authors..." aria-label="Search">
-                <select name="genre" class="form-select w-25 me-2">
-                    <option value="" selected>All Genres</option>
-                    <option value="Fiction">Fiction</option>
-                    <option value="Non-fiction">Non-fiction</option>
-                    <option value="Mystery">Mystery</option>
-                    <option value="Romance">Romance</option>
-                    <option value="Sci-Fi">Sci-Fi</option>
-                    <option value="Fantasy">Fantasy</option>
-                    <option value="Biography">Biography</option>
-                    <option value="Self-Help">Self-Help</option>
-                    <option value="Children">Children</option>
-                </select>
-                <button type="submit" class="btn btn-primary">Search</button>
+                <div class="input-group w-75">
+                    <input type="text" name="query" class="form-control" placeholder="Search for books or authors..." aria-label="Search">
+                    <select name="genre" class="form-select">
+                        <option value="" selected>All Genres</option>
+                        {% for genre in genres %}
+                            <option value="{{ genre }}">{{ genre }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </div>
             </form>
         </div>
     </header>
-    
+        
     <!-- Featured Books Section -->
     <section class="featured-books py-5">
         <div class="container">
@@ -117,7 +113,13 @@
                     {% for book in books %}
                     <div class="col-md-4 mb-4">
                         <div class="card book-card">
-                            <img src="{{ book.cover_image or url_for('static', filename='images/default_cover.jpg') }}" class="card-img-top" alt="{{ book.title }}">
+                            <div class="placeholder-img">
+                                {% if book.cover_image %}
+                                    <img src="{{ book.cover_image }}" class="card-img-top" alt="{{ book.title }}">
+                                {% else %}
+                                    <div class="grey-square"></div>
+                                {% endif %}
+                            </div>
                             <div class="card-body">
                                 <h5 class="card-title">{{ book.title }}</h5>
                                 <p class="card-text">By {{ book.author }}</p>
@@ -133,7 +135,7 @@
             </div>
         </div>
     </section>
-
+    
     <!-- Footer -->
     <footer class="py-4">
         <div class="container text-center">

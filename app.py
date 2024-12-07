@@ -88,9 +88,13 @@ def search():
     try:
         cur = mysql.connection.cursor()
 
+        # Fetch all available genres dynamically
+        cur.execute("SELECT DISTINCT genre FROM Book")
+        genres = [row[0] for row in cur.fetchall()]
+
         # Base query
         search_query = """
-            SELECT book_id, title, author, genre, price 
+            SELECT book_id, title, author, genre, price, cover_image
             FROM Book
             WHERE 1=1
         """
@@ -110,8 +114,8 @@ def search():
         books = cur.fetchall()  # Fetch matching books
         cur.close()
 
-        # Pass books, query, and genre to the template
-        return render_template('products.html', books=books, query=query, genre=genre)
+        # Pass books, query, and genres to the template
+        return render_template('products.html', books=books, query=query, genre=genre, genres=genres)
     except Exception as e:
         print("Search Error:", e)
         return jsonify({"error": str(e)}), 500
