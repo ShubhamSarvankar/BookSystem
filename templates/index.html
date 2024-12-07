@@ -29,6 +29,16 @@
             max-width: 900px;
             margin: 0 auto;
         }
+        .input-group .form-select {
+            max-width: 150px;
+            border-radius: 0;
+        }
+        .input-group .form-control {
+            border-radius: 0;
+        }
+        .input-group .btn-primary {
+            border-radius: 0;
+        }
         .card {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border: none;
@@ -55,6 +65,9 @@
         }
         footer p, footer small {
             margin: 0;
+        }
+        .dropdown-menu {
+            width: 100%;
         }
     </style>
 </head>
@@ -89,15 +102,15 @@
         <div class="container">
             <h1 class="display-4 fw-bold">Welcome to Book Haven</h1>
             <p class="lead">Discover, explore, and shop the best books in one place.</p>
-            <form action="/search" method="GET" class="search-form d-flex justify-content-center mt-4">
-                <div class="input-group w-75">
-                    <input type="text" name="query" class="form-control" placeholder="Search for books or authors..." aria-label="Search">
+            <form action="/search" method="GET" class="search-form mt-4">
+                <div class="input-group">
                     <select name="genre" class="form-select">
                         <option value="" selected>All Genres</option>
                         {% for genre in genres %}
                             <option value="{{ genre }}">{{ genre }}</option>
                         {% endfor %}
                     </select>
+                    <input type="text" name="query" class="form-control" placeholder="Search for books or authors..." aria-label="Search">
                     <button type="submit" class="btn btn-primary">Search</button>
                 </div>
             </form>
